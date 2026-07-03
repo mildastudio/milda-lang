@@ -1,0 +1,34 @@
+{
+  "name": "milda",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "The Milda language — a platform-neutral design language and canonical AST for design systems.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mildastudio/milda-lang.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup index.ts --format esm,cjs --dts --clean",
+    "typecheck": "tsc --noEmit",
+    "check:prelude": "tsx engine/prelude.check.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.5.1",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
