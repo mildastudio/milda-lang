@@ -72,6 +72,7 @@ export type {
   EventDef,
   Contract,
   PartState,
+  PartVariant,
   Part,
   Anatomy,
   RealizeCond,
@@ -80,6 +81,7 @@ export type {
   BrowseRealize,
   CommitRealize,
   Realization,
+  Composition,
   Component,
 } from './types/components'
 
@@ -141,3 +143,8 @@ export type {
   ConformanceOptions,
 } from './engine/conformance'
 export { conformance } from './engine/conformance'
+
+export { parseMildaDocument } from './dsl/parse'
+export type { ParseResult, ParseIssue, ParseOptions, DesignSystemDocument } from './dsl/parse'
+export { lex, LexError } from './dsl/lexer'
+export type { Token as DslToken } from './dsl/lexer'
