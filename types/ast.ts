@@ -26,6 +26,11 @@ export interface ObjectField {
 
 export type PropValue = string | number | boolean | PropValue[] | { [key: string]: PropValue }
 
+// Free-form descriptive metadata (proposal 0026) — attached to a component (and, via
+// `Foundations.metadata`, the document). Deliberately loose: metadata is descriptive,
+// never contractual, so it does not participate in the contract digest / semver.
+export type Metadata = Record<string, PropValue>
+
 export interface SharedType {
   id: Id
   name: string

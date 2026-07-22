@@ -1,0 +1,102 @@
+{
+  "milda": "0.0.1",
+  "kind": "design-system",
+  "prelude": "0.0.1",
+  "meta": { "id": "ds.demo", "name": "Demo", "version": "0.1.0" },
+
+  "foundations": {
+    "contextGroups": [
+      { "id": "cg.scheme", "name": "ColorScheme",
+        "contexts": [ {"id":"ctx.light","name":"Light"}, {"id":"ctx.dark","name":"Dark"} ] },
+      { "id": "cg.platform", "name": "Platform",
+        "contexts": [ {"id":"ctx.web","name":"Web"}, {"id":"ctx.ios","name":"iOS"}, {"id":"ctx.android","name":"Android"} ] }
+    ],
+    "layers": [
+      { "id": "layer.base", "name": "Base", "order": 0, "tokens": [
+        { "id":"tok.shadow.lg", "name":"shadow/lg", "type":"shadow", "value":{"kind":"raw","value":{"layers":[
+          {"offsetX":{"value":0,"unit":"fixed"},"offsetY":{"value":10,"unit":"fixed"},"blur":{"value":15,"unit":"fixed"},"spread":{"value":0,"unit":"fixed"},"color":{"space":"srgb","channels":[0,0,0],"alpha":0.1},"inset":false}
+        ]}} },
+        { "id":"tok.tonal.3",   "name":"tonal/3",   "type":"tonal",     "value":{"kind":"raw","value":{"level":3}} },
+        { "id":"tok.none",      "name":"none",      "type":"elevation", "value":{"kind":"raw","value":{"none":true}} },
+        { "id":"tok.radius.md", "name":"radius/md", "type":"radius",  "value":{"kind":"raw","value":{"value":0.375,"unit":"scaled"}} },
+        { "id":"tok.radius.lg", "name":"radius/lg", "type":"radius",  "value":{"kind":"raw","value":{"value":0.5,"unit":"scaled"}} },
+        { "id":"tok.space.2",   "name":"space/2",   "type":"spacing", "value":{"kind":"raw","value":{"value":0.5,"unit":"scaled"}} },
+        { "id":"tok.space.3",   "name":"space/3",   "type":"spacing", "value":{"kind":"raw","value":{"value":0.75,"unit":"scaled"}} },
+        { "id":"tok.white",     "name":"white",     "type":"color", "value":{"kind":"raw","value":{"space":"srgb","channels":[1,1,1]}} },
+        { "id":"tok.slate.800", "name":"slate/800", "type":"color", "value":{"kind":"raw","value":{"space":"hsl","channels":[217,0.33,0.17]}} },
+        { "id":"tok.accent",    "name":"accent",    "type":"color", "value":{"kind":"raw","value":{"space":"hsl","channels":[217,0.91,0.6]}} }
+      ] },
+      { "id": "layer.semantic", "name": "Semantic", "order": 1, "tokens": [
+        { "id":"tok.surface.input", "name":"surface/input", "type":"color",
+          "value":{"kind":"alias","by":"cg.scheme",
+                   "refs":{"ctx.light":"tok.white","ctx.dark":"tok.slate.800","default":"tok.white"}} },
+        { "id":"tok.surface.raised", "name":"surface/raised", "type":"color",
+          "value":{"kind":"alias","by":"cg.scheme",
+                   "refs":{"ctx.light":"tok.white","ctx.dark":"tok.slate.800","default":"tok.white"}} },
+        { "id":"tok.elev.overlay", "name":"elevation/overlay", "type":"elevation",
+          "value":{"kind":"alias","by":"cg.platform",
+                   "refs":{"ctx.web":"tok.shadow.lg","ctx.android":"tok.tonal.3","ctx.ios":"tok.none","default":"tok.shadow.lg"}} }
+      ] }
+    ],
+    "sharedTypes": [
+      { "id":"type.Option", "name":"Option", "definition":{"kind":"object","fields":[
+        {"id":"f.value","name":"value","type":{"kind":"string"},"required":true},
+        {"id":"f.label","name":"label","type":{"kind":"string"},"required":true},
+        {"id":"f.disabled","name":"disabled","type":{"kind":"boolean"},"required":false}
+      ]} }
+    ],
+    "metadata": []
+  },
+
+  "assets": { "folders": {}, "assets": {} },
+
+  "components": [
+    {
+      "id": "cmp.select",
+      "name": "Select",
+      "description": "Single choice from a known set",
+      "archetype": "SingleSelect",
+      "contract": {
+        "params": { "options": { "prop": "p.options" } },
+        "props": [
+          { "id":"p.options","name":"options","type":{"kind":"array","item":{"kind":"ref","ref":"type.Option"}},"required":true },
+          { "id":"p.value","name":"value","type":{"kind":"ref","ref":"type.Option"},"binding":"selected" },
+          { "id":"p.placeholder","name":"placeholder","type":{"kind":"string"},"default":"Select…" }
+        ],
+        "events": [ { "name":"change", "from":"S.change" } ]
+      },
+      "anatomy": {
+        "trigger": {
+          "layout": { "stack":"row", "gap":"tok.space.2", "align":"center", "size":{"width":"fill","height":"fit"} },
+          "facets": { "fill":{"token":"tok.surface.input"}, "corner":{"token":"tok.radius.md"},
+                      "inset":{"inset":{"block":"tok.space.2","inline":"tok.space.3"}} },
+          "states": {
+            "open":     { "facets": { "ring": {"token":"tok.accent"} } },
+            "disabled": { "facets": { "fill": {"token":"tok.slate.800"} } }
+          }
+        },
+        "surface": {
+          "facets": { "fill":{"token":"tok.surface.raised"}, "corner":{"token":"tok.radius.lg"},
+                      "elevation":{"token":"tok.elev.overlay"} }
+        },
+        "option": {
+          "layout": { "stack":"row", "gap":"tok.space.2" },
+          "states": { "active":   { "facets": { "fill":{"token":"tok.surface.raised"} } },
+                      "selected": { "facets": { "ink": {"token":"tok.accent"} } } }
+        }
+      },
+      "realize": [
+        { "target":"web", "when":null,
+          "presentation":{"surface":"popover","place":"bottom-start","flip":true,"matchWidth":true},
+          "browse":{"mode":"roving","orient":"vertical","wrap":true},
+          "commit":{"mode":"explicit","on":["click","enter"]} },
+        { "target":"ios", "when":{"prop":"style","eq":"wheel"},
+          "presentation":{"surface":"inline-wheel"},
+          "browse":{"mode":"scroll-detent"},
+          "commit":{"mode":"continuous"},
+          "drop":["activation","dismiss"],
+          "wire":[ {"from":"B.active-changed","to":"S.select","arg":"B.active"} ] }
+      ]
+    }
+  ]
+}

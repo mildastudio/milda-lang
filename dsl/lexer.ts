@@ -1,5 +1,5 @@
 // ─── Milda DSL lexer ──────────────────────────────────────────────────────────
-// Tokenizes the concrete surface syntax (docs/dsl/GRAMMAR.ebnf) for the hand-written
+// Tokenizes the concrete surface syntax (../spec/GRAMMAR.ebnf) for the hand-written
 // recursive-descent parser (./parse.ts). Zero-dependency; the executable PEG /
 // tree-sitter tracks the spec mentions are deferred — this covers the authoring
 // surface with precise source positions for diagnostics.
@@ -21,14 +21,20 @@ export type TokenType =
   | 'rbrace'
   | 'lparen'
   | 'rparen'
+  | 'lbracket'
+  | 'rbracket'
   | 'lt'
   | 'gt'
+  | 'lte'
+  | 'gte'
+  | 'ne'
   | 'colon'
   | 'equals'
   | 'comma'
   | 'semi'
   | 'question'
   | 'arrow'
+  | 'at'
   | 'newline'
   | 'eof'
 
@@ -58,6 +64,8 @@ const PUNCT: Record<string, TokenType> = {
   '}': 'rbrace',
   '(': 'lparen',
   ')': 'rparen',
+  '[': 'lbracket',
+  ']': 'rbracket',
   '<': 'lt',
   '>': 'gt',
   ':': 'colon',
@@ -65,6 +73,7 @@ const PUNCT: Record<string, TokenType> = {
   ',': 'comma',
   ';': 'semi',
   '?': 'question',
+  '@': 'at',
 }
 
 export function lex(src: string): Token[] {
@@ -147,6 +156,26 @@ export function lex(src: string): Token[] {
     if (c === '→') {
       advance()
       push('arrow', '->', startPos, startLine, startCol)
+      continue
+    }
+
+    // Multi-char comparison operators (predicate leaves, proposal 0032). Lexed before
+    // the single-char punctuation so `<=`/`>=`/`!=` don't split into two tokens (and so
+    // a lone `!` isn't silently dropped). `<`/`>` alone still lex as `lt`/`gt` (used by
+    // `array<…>` types), so type parsing is unaffected — `<=` only appears in predicates.
+    if (c === '!' && src[i + 1] === '=') {
+      advance(2)
+      push('ne', '!=', startPos, startLine, startCol)
+      continue
+    }
+    if (c === '<' && src[i + 1] === '=') {
+      advance(2)
+      push('lte', '<=', startPos, startLine, startCol)
+      continue
+    }
+    if (c === '>' && src[i + 1] === '=') {
+      advance(2)
+      push('gte', '>=', startPos, startLine, startCol)
       continue
     }
 

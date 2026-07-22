@@ -1,0 +1,131 @@
+(* ============================================================================
+   Milda DSL — concrete syntax grammar, v0.1 (frozen 2026-06-19)   (ISO/IEC 14977 EBNF)
+
+   The NORMATIVE abstract syntax is the canonical AST (PRELUDE.md §10). This
+   grammar defines the human surface syntax — *sugar* that desugars 1:1 onto the
+   AST. Each production notes the AST node it maps to ( ⇒ ).
+
+   SCOPE (v0.0.1): the design-system authoring surface matching examples/select.json.
+   v0.1 ADDITIONS (marked `v0.1` inline):
+     · prop-bound context groups — proposal 0001 (`typeexpr | "context" ident`,
+       `propdefault`/`aliasvalue`).
+     · facet-vocabulary closure — proposal 0002 (`facetname` = facet + optional sub-key;
+       legitimizes `text.clamp`/`border.inline-start`).
+     · layout-structure closure — proposal 0003 (`layoutblock` optional `when`; `bleed`
+       position value + `wrap` container facet need no grammar change).
+     · first-class slots — proposal 0004 (`slotstmt` part-body statement: arity + content
+       contract + optional `keyed-by`).
+   v0.1 FROZEN: punch-list A1–A4 merged; AST formalized in ast.schema.json (validate.js).
+   Executable tracks next (B2): tree-sitter + PEG generated from this EBNF.
+   DEFERRED: the prelude state-machine notation (§9 — its own grammar) and the
+   foundations palette/semantic shorthand (sugar over `token` decls).
+
+   The grammar is intentionally permissive about argument arity (a `facetstmt`
+   takes one-or-more values); how many a given facet expects is a SEMANTIC check
+   at the AST-mapping layer, not a syntactic rule.
+   ============================================================================ *)
+
+(* ---------- Lexical ---------- *)
+letter     = "A".."Z" | "a".."z" | "_" ;
+digit      = "0".."9" ;
+ident      = letter , { letter | digit | "-" } ;
+segment    = ident | digit , { digit } ;
+path       = segment , { "." , segment } ;          (* token/type ref: space.2, surface.input *)
+propref    = "$" , ident , { "." , ident } ;        (* $value, $opt.label *)
+machineref = ident , "." , ident ;                  (* S.change, B.active-changed *)
+number     = [ "-" ] , digit , { digit } , [ "." , digit , { digit } ] ;
+string     = '"' , { character - '"' } , '"' ;
+arrow      = "→" | "->" ;
+comment    = "#" , { character - newline } , newline ;   (* ignored *)
+terminator = newline | ";" ;
+literal    = string | number | "true" | "false" ;
+identlist  = ident , { "," , ident } ;
+
+(* ---------- Document ---------- *)
+document = { topdecl } ;                             (* ⇒ design-system document *)
+topdecl  = versiondecl | metablock | contextgroup | foundations | typedecl | component ;
+
+(* ---------- Header & metadata (proposal 0026) ---------- *)
+versiondecl = ( "milda" | "prelude" ) , versionlit ;   (* ⇒ document.milda / document.prelude *)
+versionlit  = segment , { "." , segment } ;            (* e.g. 0.2 · 0.0.2 · 1.2.0 *)
+metablock   = "meta" , "{" , { metaentry } , "}" ;     (* top-level ⇒ meta + foundations.metadata[] *)
+metaentry   = ident , metavalue , [ terminator ] ;
+metavalue   = string | number | "true" | "false"
+            | "[" , [ metascalar , { "," , metascalar } ] , "]" ;   (* a list, e.g. tags *)
+metascalar  = string | number | ident ;
+
+(* ---------- Context groups ---------- *)
+contextgroup = "context-group" , ident , "{" , { ident } , "}" ;   (* ⇒ foundations.contextGroups[] *)
+
+(* ---------- Foundations / tokens ---------- *)
+foundations = "foundations" , "{" , { tokendecl } , "}" ;          (* ⇒ foundations.layers[].tokens[] *)
+tokendecl   = "token" , path , ":" , ident , "=" , tokenvalue ;    (* path=name, ident=type *)
+tokenvalue  = "raw" , valueliteral                                (* ⇒ {kind:"raw", value:<typed>} ; literal desugars to the type's value schema *)
+            | "escape" , string , [ "note" , string ]             (* ⇒ {kind:"escape", raw, note?} — platform leaf hatch, marks node partial *)
+            | "alias" , "by" , ident , "{" , { aliasref } , "}" ;  (* ⇒ {kind:"alias",by,refs} *)
+valueliteral= string | number | path                              (* shorthand for the typed value selected by the token's `type` *)
+            | "{" , { ident , ":" , ( literal | path | valueliteral ) , [ terminator ] } , "}" ;  (* structured typed value *)
+aliasref    = ( ident | "default" ) , arrow , path , [ terminator ] ;
+
+(* ---------- Shared types ---------- *)
+typedecl  = "type" , ident , "=" , typeexpr ;                      (* ⇒ foundations.sharedTypes[] *)
+typeexpr  = "string" | "number" | "boolean"
+          | "enum" , "(" , identlist , ")"
+          | "ref" , path
+          | "array" , "<" , typeexpr , ">"
+          | "object" , "{" , { field } , "}"
+          | "union" , "(" , typeexpr , { "," , typeexpr } , ")"
+          | "component" , [ "(" , identlist , ")" ]
+          | "context" , ident ;        (* v0.1 — prop-bound context group; bare ident resolving to a
+                                           context-group is the sugar. ⇒ type {kind:"context",group} *)
+field     = ident , [ "?" ] , ":" , typeexpr , [ terminator ] ;
+
+(* ---------- Component (archetype usage) ---------- *)
+component     = "component" , ident , [ string ] , "{" , { cmember } , "}" ;   (* ⇒ components[] *)
+cmember       = archetypedecl | metablock | propsblock | eventsblock | usesstmt | gatestmt | wirestmt
+              | motionstmt | requiresstmt | part | realize ;   (* metablock ⇒ component.meta (0026) *)
+(* v0.2 (proposal 0024) — component-level behaviour composition (the §9 algebra) is
+   authorable directly, not only inside `realize`. ⇒ component.composition{uses,coordination} *)
+usesstmt      = "uses" , atomname , [ "(" , { ident , [ ":" , ident ] , [ "," ] } , ")" ] ,
+                "as" , ident ;                                    (* ⇒ composition.uses[] *)
+gatestmt      = "gate" , ident , "active" , "when" , condition ;  (* ⇒ composition.coordination[] (gate) *)
+motionstmt    = "motion" , { ? any token except terminator ? } ;  (* decoration layer; parsed as a note *)
+requiresstmt  = "requires" , { ident } ;                          (* capability gate; not stored in the AST Component *)
+atomname      = ident , [ "." , ident ] ;                         (* e.g. presentation · selection.single *)
+archetypedecl = "archetype" , ident ;                             (* ⇒ component.archetype *)
+propsblock    = "props" , "{" , { propdecl } , "}" ;              (* ⇒ contract.props[] *)
+propdecl      = ident , typeexpr , [ "=" , propdefault ] , [ "bind" , ident ] , { propannot } , [ terminator ] ;
+propannot     = "@" , ident , ( ident | string | number ) ;       (* v0.2 (0026) — prop metadata: @status deprecated @since 1.2.0 ⇒ prop.meta (props carry no author) *)
+propdefault   = literal | aliasvalue ;                            (* v0.1 — default may be context-aliased *)
+aliasvalue    = "alias" , "by" , ident , "{" , { aliasref } , "}" ;  (* reuses `aliasref`; e.g. responsive `by Breakpoint` *)
+eventsblock   = "events" , "{" , { eventdecl } , "}" ;            (* ⇒ contract.events[] *)
+eventdecl     = ident , [ "from" , machineref ] , [ terminator ] ;
+
+(* ---------- Anatomy part ---------- *)
+part       = "part" , ident , "{" , { pstmt } , "}" ;             (* ⇒ component.anatomy.<part> *)
+pstmt      = layoutblock | stateblock | whenblock | slotstmt | facetstmt ;
+slotstmt   = "slot" , [ arity ] , [ "of" , contentspec ] ,        (* v0.1 — marks the part a consumer-fillable
+             [ "keyed-by" , ident ] , [ terminator ] ;            (* slot. ⇒ part.slot{arity,accepts,keyedBy?} *)
+arity      = "single" | "optional" | "many" ;                     (* omitted ⇒ single *)
+contentspec= "content" | "ref" , path | ident ;                   (* omitted ⇒ content (free); else typed data / child component *)
+layoutblock= "layout" , [ "when" , condition ] , "{" , { facetstmt } , "}" ;   (* ⇒ part.layout; v0.1 — optional
+                                                                    `when` = conditional (prop-driven) layout, reuses `condition` *)
+stateblock = "state" , ident , [ "when" , condition ] , "{" , { facetstmt | layoutblock } , "}" ;
+                                                                  (* ⇒ part.states.<state> (no when) OR
+                                                                     part.variants[] {states,when} — proposal 0025 *)
+whenblock  = "when" , condition , "{" , { facetstmt | layoutblock } , "}" ;
+                                                                  (* ⇒ part.variants[] {when} — state-less prop paint, proposal 0025 *)
+facetstmt  = facetname , value , { value } , [ terminator ] ;    (* ⇒ facets/layout entry *)
+facetname  = ident , [ "." , ident ] ;                           (* v0.1 — facet + optional sub-key:
+                                                                    text.clamp, text.wrap, border.inline-start *)
+value      = path | propref | string | number | ident ;          (* path ⇒ {token}; else raw/intent *)
+
+(* ---------- Realization ---------- *)
+realize   = "realize" , ident , [ "when" , condition ] , "{" , { rstmt } , "}" ;  (* ⇒ component.realize[] *)
+condition = ident , "=" , ( ident | string | number ) ;          (* ⇒ realize.when *)
+rstmt     = rblock | dropstmt | wirestmt | facetstmt ;
+rblock    = ident , [ ident ] , "{" , { facetstmt } , "}" ;      (* presentation popover { ... } *)
+dropstmt  = "drop" , identlist ;                                  (* ⇒ realize.drop[] *)
+wirestmt  = "wire" , wireend , [ "when" , condition ] , arrow , wireend ;   (* ⇒ realize.wire[] / composition *)
+wireend   = machineref , [ "(" , [ argref ] , ")" ] | ident ;
+argref    = machineref | propref | ident ;

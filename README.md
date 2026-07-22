@@ -1,26 +1,44 @@
-# milda
+# @mildastudio/milda
 
-The **Milda language** — a platform-neutral design language for describing design
+The **Milda language** - a platform-neutral design language for describing design
 systems and their components, and the canonical AST that tools exchange.
 
 Milda separates *what a component is* (its contract, anatomy, behavior, and
 styling intent) from *how any one platform realizes it*. A description written
-once can be generated into React, CSS, Figma variables, and — by design — other
+once can be generated into React, CSS, Figma variables, and - by design - other
 targets, without the description itself leaking platform assumptions.
+
+> This repository is the public, open-source mirror of the `packages/milda`
+> package from the Milda monorepo, which stays the single source of truth. See
+> [milda.dev](https://milda.dev) for the product and the full DSL documentation.
+
+## Install
+
+```bash
+npm install @mildastudio/milda
+```
+
+```ts
+import { preludeV0, validate, resolveToken } from "@mildastudio/milda";
+```
 
 ## What's in here
 
-- **AST** (`types/ast.ts`) — the canonical interchange artifact. The spec in
-  `docs/dsl/PRELUDE.md` is the normative source of truth; this package is one
-  implementation of it.
-- **Tokens** (`types/tokens.ts`) — layered, context-aware token values
-  (color, dimension, shadow, typography, …) with alias chains and an explicit
+- **Spec** (`spec/`) - the normative language: [`PRELUDE.md`](spec/PRELUDE.md)
+  (source of truth), [`GRAMMAR.ebnf`](spec/GRAMMAR.ebnf), [`ast.schema.json`](spec/ast.schema.json),
+  [`ROADMAP.md`](spec/ROADMAP.md), the language design [`proposals/`](spec/proposals/),
+  and `examples/` (validate them with `node spec/validate.js`).
+- **AST** (`types/ast.ts`) - the canonical interchange artifact. The spec in
+  [`spec/PRELUDE.md`](spec/PRELUDE.md) is the normative source of truth; this package
+  is one implementation of it.
+- **Tokens** (`types/tokens.ts`) - layered, context-aware token values
+  (color, dimension, shadow, typography, ...) with alias chains and an explicit
   `escape` leaf for values a target can't express natively.
-- **Facets, layout, states, capabilities** (`types/facets.ts`) — the
+- **Facets, layout, states, capabilities** (`types/facets.ts`) - the
   platform-neutral styling and layout vocabulary.
-- **Prelude** (`prelude/preludeV0.ts`) — the standard library expressed as
+- **Prelude** (`prelude/preludeV0.ts`) - the standard library expressed as
   data: behavior *atoms*, *archetypes*, facets, states, and capabilities.
-- **Engine** (`engine/*`) — pure, side-effect-free semantics over the AST:
+- **Engine** (`engine/*`) - pure, side-effect-free semantics over the AST:
   `resolveToken`, `resolveFacets`/`resolveLayout`, `validate`, and `conformance`
   (which reports where a description has holes for a given target).
 
@@ -32,12 +50,19 @@ targets, without the description itself leaking platform assumptions.
   in the language.
 - **Honest escape hatches.** Where a value or capability can't be expressed
   cleanly, the model carries an explicit `escape` leaf rather than silently
-  approximating — so `conformance` can tell you exactly what won't survive a
+  approximating - so `conformance` can tell you exactly what won't survive a
   given target.
+
+## Where it fits
+
+`@mildastudio/milda` is the language layer. The generators and pipeline that
+consume it live in the [milda-engine](https://github.com/mildastudio/milda-engine)
+repo (`@mildastudio/core`, `@mildastudio/contract`, `@mildastudio/generate`,
+`@mildastudio/release`), which depends on this package.
 
 ## Status
 
-`0.x` — the language and AST are still evolving; treat the shape as unstable
+`0.x` - the language and AST are still evolving; treat the shape as unstable
 until `1.0`.
 
 ## License

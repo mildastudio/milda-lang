@@ -102,6 +102,11 @@ export interface CompositeBehavior {
   builtFrom: string[]
   uses?: UsesClause[]
   composition?: CoordEntry[]
+  // The signals a composite surfaces to its host archetype, the composite-level
+  // mirror of an atom's `emits`. A composite is not in `atomsByName`, so without this
+  // an archetype whose core signal comes only from a composite (Disclosure →
+  // `disclosure`, Wizard → `stepping-nav`) was born with no events (proposal 0034 §B).
+  emits?: { name: string }[]
   note?: string
 }
 

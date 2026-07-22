@@ -534,6 +534,7 @@ const composites: CompositeBehavior[] = [
       { atom: 'presentation', as: 'P', params: { surface: 'inline' } },
     ],
     composition: [{ kind: 'wire', from: 'T.change', to: 'P.toggle' }],
+    emits: [{ name: 'toggle' }],
     note: '≈ toggle(expanded) + presentation(inline); exposes expanded',
   },
   {
@@ -571,6 +572,7 @@ const composites: CompositeBehavior[] = [
     kind: 'composite',
     name: 'stepping-nav',
     builtFrom: ['navigation'],
+    emits: [{ name: 'stepChange' }, { name: 'complete' }],
     note: '≈ navigation(ordered) + constraint; ordered progress through steps; exposes active, complete',
   },
   {
@@ -930,7 +932,12 @@ const archetypes: ArchetypeDef[] = [
     ],
 
     composes: ['selection.single', 'presentation', 'browse', 'dismiss', 'masking'],
-    realizationNote: 'web calendar-grid · iOS wheel (momentum+detent+haptic) · Android dialog',
+    // Behavior is the shared framework-agnostic calendar core (proposal 0029,
+    // targets/behavior/calendar.ts); node.calendar picks single|range + weekStartsOn
+    // + disabledWeekdays. The `day` grid cell carries calendar states (today,
+    // outsideMonth, selected, rangeStart, rangeEnd, inRange) rendered as data-* attrs.
+    realizationNote:
+      'web calendar-grid (single|range via node.calendar) · iOS wheel (momentum+detent+haptic) · Android dialog',
   },
   {
     kind: 'archetype',
@@ -962,7 +969,10 @@ const archetypes: ArchetypeDef[] = [
       },
     ],
     composes: ['selection.single', 'presentation', 'browse', 'dismiss', 'masking'],
-    realizationNote: 'iOS wheel · Android dialog',
+    // Behavior is the shared framework-agnostic time core (proposal 0029,
+    // targets/behavior/timepicker.ts); node.timePicker picks the slot step + 12/24h.
+    // Web realization = a listbox of time slots; iOS wheel is a per-platform view.
+    realizationNote: 'web time-slot listbox (step via node.timePicker) · iOS wheel · Android dialog',
   },
   {
     kind: 'archetype',
@@ -990,6 +1000,10 @@ const archetypes: ArchetypeDef[] = [
       },
     ],
     composes: ['range', 'value-entry', 'presentation', 'dismiss'],
+    // Behavior is the shared framework-agnostic color core (proposal 0029,
+    // targets/behavior/color.ts): HSV<->RGB<->hex math + the saturation/value area
+    // and hue slider geometry, so every target computes an identical picker.
+    realizationNote: 'web SV-area + hue slider + hex input · native color input fallback',
   },
   {
     kind: 'archetype',
@@ -1473,10 +1487,11 @@ const archetypes: ArchetypeDef[] = [
   },
   {
     kind: 'archetype',
-    name: 'Image',
+    name: 'Media',
     group: 'Media',
-    contract: 'bitmap w/ alt + fit',
+    contract: 'image/video/audio/embed w/ alt + fit (proposal 0028)',
     produces: { level: 'phrase', interactive: false },
+    anatomy: [{ name: 'media', role: 'content' }],
     composes: [],
   },
   {
@@ -1639,6 +1654,9 @@ export const preludeV0: PreludeDocument = {
 }
 
 export const atomsByName: Record<string, Atom> = Object.fromEntries(atoms.map((a) => [a.name, a]))
+export const compositesByName: Record<string, CompositeBehavior> = Object.fromEntries(
+  composites.map((c) => [c.name, c]),
+)
 export const archetypesByName: Record<string, ArchetypeDef> = Object.fromEntries(
   archetypes.map((a) => [a.name, a]),
 )

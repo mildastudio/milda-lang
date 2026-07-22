@@ -1,6 +1,6 @@
 name: Publish
 
-# Publishes @mildastudio/milda to npm via TRUSTED PUBLISHING (OIDC) — no token.
+# Publishes @mildastudio/milda to npm via TRUSTED PUBLISHING (OIDC) - no token.
 # One-time setup on npmjs.com: the package must exist (do the first publish
 # manually), then add this repo + workflow (release.yml) as a Trusted Publisher.
 # Trigger by publishing a GitHub Release, or manually.

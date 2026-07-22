@@ -4,6 +4,7 @@ export type {
   TypeExpr,
   ObjectField,
   PropValue,
+  Metadata,
   SharedType,
   ParamBinding,
   DocumentMeta,
@@ -75,6 +76,9 @@ export type {
   PartVariant,
   Part,
   Anatomy,
+  Predicate,
+  PredicateRef,
+  CompareOp,
   RealizeCond,
   Wire,
   PresentationRealize,
@@ -128,7 +132,7 @@ export type {
   PartRole,
   AnatomyPart,
 } from './types/prelude'
-export { preludeV0, atomsByName, archetypesByName } from './prelude/preludeV0'
+export { preludeV0, atomsByName, archetypesByName, compositesByName } from './prelude/preludeV0'
 
 export type { ResolvedToken } from './engine/resolveToken'
 export { resolveToken, findToken, allTokensOfType } from './engine/resolveToken'

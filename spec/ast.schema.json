@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://milda.dev/schema/ast/0.1.0",
+  "title": "Milda DSL — canonical AST (design-system document), v0.1",
+  "description": "Normative JSON Schema for the Milda canonical AST defined in PRELUDE.md §10, including the v0.1 additions from proposals 0001–0004 (prop-bound context groups, facet-vocabulary closure, layout-structure closure, first-class slots). This schema covers the `design-system` document kind; the `prelude` document (state-machine catalog, §10 'Prelude AST') is a separate, deferred schema. Structural shapes are validated strictly; typed token-value payloads (raw values) are intentionally permissive — per-type value schemas are provided in $defs as tooling reference and are a documented future tightening.",
+
+  "type": "object",
+  "required": ["milda", "kind", "prelude", "foundations", "components"],
+  "additionalProperties": false,
+  "properties": {
+    "milda":   { "$ref": "#/$defs/semver", "description": "language version targeted" },
+    "kind":    { "const": "design-system" },
+    "prelude": { "$ref": "#/$defs/semver", "description": "stdlib/prelude version targeted" },
+    "meta": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id":      { "$ref": "#/$defs/id" },
+        "name":    { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "foundations": { "$ref": "#/$defs/foundations" },
+    "assets": {
+      "type": "object",
+      "properties": {
+        "folders": { "type": "object" },
+        "assets":  { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    }
+  },
+
+  "$defs": {
+
+    "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$" },
+    "id":     { "type": "string", "minLength": 1 },
+    "tokenRef": { "type": "string", "minLength": 1, "description": "a token id" },
+
+    "foundations": {
+      "type": "object",
+      "required": ["contextGroups", "layers"],
+      "additionalProperties": true,
+      "properties": {
+        "contextGroups": { "type": "array", "items": { "$ref": "#/$defs/contextGroup" } },
+        "layers":        { "type": "array", "items": { "$ref": "#/$defs/layer" } },
+        "sharedTypes":   { "type": "array", "items": { "$ref": "#/$defs/sharedType" } },
+        "metadata":      { "type": "array" }
+      }
+    },
+
+    "contextGroup": {
+      "type": "object",
+      "required": ["id", "name", "contexts"],
+      "additionalProperties": false,
+      "properties": {
+        "id":   { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "contexts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name"],
+            "additionalProperties": false,
+            "properties": {
+              "id":   { "$ref": "#/$defs/id" },
+              "name": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "layer": {
+      "type": "object",
+      "required": ["id", "name", "tokens"],
+      "additionalProperties": true,
+      "properties": {
+        "id":    { "$ref": "#/$defs/id" },
+        "name":  { "type": "string" },
+        "order": { "type": "integer" },
+        "tokens":{ "type": "array", "items": { "$ref": "#/$defs/token" } }
+      }
+    },
+
+    "token": {
+      "type": "object",
+      "required": ["id", "name", "type", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "id":    { "$ref": "#/$defs/id" },
+        "name":  { "type": "string" },
+        "type":  { "type": "string", "description": "value-schema selector: color | spacing | radius | dimension | shadow | tonal | elevation | typography | font-family | font-weight | ring | backdrop | …" },
+        "value": { "$ref": "#/$defs/valueNode" }
+      }
+    },
+
+    "valueNode": {
+      "description": "A token (or context-aliased) value. PRELUDE §10 token value kinds.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "kind":  { "const": "raw" },
+            "value": { "description": "typed payload selected by the owning token's `type`; permissive (see $defs typed-value references)." }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "by", "refs"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "alias" },
+            "by":   { "$ref": "#/$defs/id", "description": "context-group id this aliases over (may be prop-bound, 0001)" },
+            "refs": {
+              "type": "object",
+              "description": "context-id → token-id (refs may be cross-type for facet-tokens); a `default` key is required",
+              "required": ["default"],
+              "additionalProperties": { "$ref": "#/$defs/tokenRef" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "raw"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "escape" },
+            "raw":  { "type": "string" },
+            "note": { "type": "string" }
+          }
+        }
+      ]
+    },
+
+    "sharedType": {
+      "type": "object",
+      "required": ["id", "name", "definition"],
+      "additionalProperties": false,
+      "properties": {
+        "id":   { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "definition": { "$ref": "#/$defs/typeNode" }
+      }
+    },
+
+    "typeNode": {
+      "description": "A type expression. Includes the v0.1 `context` kind (prop-bound context group, 0001).",
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "type": "string" } },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "array" } }, "required": ["kind"] },
+          "then": { "required": ["item"], "properties": { "item": { "$ref": "#/$defs/typeNode" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "ref" } }, "required": ["kind"] },
+          "then": { "required": ["ref"], "properties": { "ref": { "$ref": "#/$defs/id" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "enum" } }, "required": ["kind"] },
+          "then": { "required": ["values"], "properties": { "values": { "type": "array", "items": { "type": "string" } } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "object" } }, "required": ["kind"] },
+          "then": {
+            "required": ["fields"],
+            "properties": {
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "type"],
+                  "properties": {
+                    "id":       { "$ref": "#/$defs/id" },
+                    "name":     { "type": "string" },
+                    "type":     { "$ref": "#/$defs/typeNode" },
+                    "required": { "type": "boolean" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "union" } }, "required": ["kind"] },
+          "then": { "required": ["options"], "properties": { "options": { "type": "array", "items": { "$ref": "#/$defs/typeNode" } } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "context" } }, "required": ["kind"] },
+          "then": { "required": ["group"], "properties": { "group": { "$ref": "#/$defs/id" } } }
+        }
+      ]
+    },
+
+    "component": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id":          { "$ref": "#/$defs/id" },
+        "name":        { "type": "string" },
+        "description": { "type": "string" },
+        "archetype":   { "type": "string", "description": "prelude archetype name; absent for pure layout/typography presets" },
+        "contract":    { "$ref": "#/$defs/contract" },
+        "anatomy": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/part" }
+        },
+        "composition": { "$ref": "#/$defs/composition" },
+        "contextBindings": {
+          "type": "array",
+          "description": "v0.1 (0001) — derivable: which context groups are supplied by which props",
+          "items": {
+            "type": "object",
+            "required": ["group", "prop"],
+            "additionalProperties": false,
+            "properties": {
+              "group": { "$ref": "#/$defs/id" },
+              "prop":  { "$ref": "#/$defs/id" }
+            }
+          }
+        },
+        "realize": { "type": "array", "items": { "$ref": "#/$defs/realizeEntry" } }
+      }
+    },
+
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "object", "required": ["prop"],   "additionalProperties": false, "properties": { "prop":   { "$ref": "#/$defs/id" } } },
+              { "type": "object", "required": ["static"], "additionalProperties": false, "properties": { "static": {} } }
+            ]
+          }
+        },
+        "props":  { "type": "array", "items": { "$ref": "#/$defs/prop" } },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/event" } }
+      }
+    },
+
+    "prop": {
+      "type": "object",
+      "required": ["id", "name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "id":       { "$ref": "#/$defs/id" },
+        "name":     { "type": "string" },
+        "type":     { "$ref": "#/$defs/typeNode" },
+        "required": { "type": "boolean" },
+        "binding":  { "type": "string", "description": "archetype machine binding name (e.g. 'selected')" },
+        "default": {
+          "description": "v0.1 (0001) — a bare literal OR a value-node (raw/alias, e.g. responsive `by Breakpoint`)",
+          "anyOf": [
+            { "type": "string" }, { "type": "number" }, { "type": "boolean" },
+            { "$ref": "#/$defs/valueNode" }
+          ]
+        }
+      }
+    },
+
+    "event": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "from": { "type": "string", "description": "<machine>.<event>" }
+      }
+    },
+
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "slot":   { "$ref": "#/$defs/slot" },
+        "layout": { "$ref": "#/$defs/layout" },
+        "facets": { "$ref": "#/$defs/facetMap" },
+        "states": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "facets": { "$ref": "#/$defs/facetMap" } }
+          }
+        }
+      }
+    },
+
+    "slot": {
+      "description": "v0.1 (0004) — a consumer-fillable insertion point.",
+      "type": "object",
+      "required": ["arity", "accepts"],
+      "additionalProperties": false,
+      "properties": {
+        "arity":  { "enum": ["single", "optional", "many"] },
+        "accepts": {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["content", "type", "component"] },
+            "ref":  { "type": "string", "description": "required for kind type (a type id) / component (a component name)" }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "kind": { "enum": ["type", "component"] } }, "required": ["kind"] },
+              "then": { "required": ["ref"] }
+            }
+          ]
+        },
+        "keyedBy": { "type": "string", "description": "many-only: the field that pairs/identifies children (compound)" }
+      }
+    },
+
+    "layout": {
+      "description": "v0.1 (0003) — a single block, or an ARRAY of blocks each optionally `when`-conditioned (default = the when-less block).",
+      "anyOf": [
+        { "$ref": "#/$defs/layoutBlock" },
+        { "type": "array", "items": { "$ref": "#/$defs/layoutBlock" } }
+      ]
+    },
+
+    "layoutBlock": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Container kind + container facets + child sizing/position. `when` (0003) gates a conditional block. Permissive bag: keys include stack|grid|flow|gap|align|distribute|size|position|wrap|inset|ratio.",
+      "properties": {
+        "when": { "$ref": "#/$defs/whenCond" },
+        "size": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "width":  { "type": ["string", "object"] },
+            "height": { "type": ["string", "object"] }
+          }
+        },
+        "position": {
+          "description": "flow | overlay | pinned | bleed (0003 bleed carries logical edges)",
+          "anyOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "required": ["position"],
+              "properties": {
+                "position": { "enum": ["flow", "overlay", "pinned", "bleed"] },
+                "edges":    { "type": "array", "items": { "type": "string" } }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "wrap": { "enum": ["nowrap", "wrap", "wrap-reverse"], "description": "v0.1 (0003) container facet; stack+wrap = flow" }
+      }
+    },
+
+    "facetMap": {
+      "type": "object",
+      "description": "facet-name → facet value. Keys may be dotted (v0.1 0002: text.clamp, border.inline-start).",
+      "propertyNames": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]*(\\.[A-Za-z_][A-Za-z0-9_-]*)?$" },
+      "additionalProperties": { "$ref": "#/$defs/facetValue" }
+    },
+
+    "facetValue": {
+      "anyOf": [
+        { "type": "object", "required": ["token"], "properties": { "token": { "$ref": "#/$defs/tokenRef" } }, "additionalProperties": false },
+        { "type": "object", "required": ["raw"],   "properties": { "raw": {} }, "additionalProperties": false },
+        { "type": "string", "description": "an enum keyword facet value, e.g. slant 'italic', text.wrap 'wrap'" },
+        { "type": "object", "description": "a structured facet value, e.g. inset {block,inline} or border.<edge> {color,width,style}" }
+      ]
+    },
+
+    "composition": {
+      "description": "Component-level behavior composition (surface `uses`/`wire`/`gate`/`motion`). PRELUDE §10 under-specifies this for design-system components; modeled permissively here (see B1 finding).",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "uses":  { "type": "array" },
+        "wire":  { "type": "array" },
+        "gate":  { "type": "array" },
+        "motion":{ "type": "array" }
+      }
+    },
+
+    "whenCond": {
+      "description": "a prop=value condition (shared by realize and conditional layout)",
+      "type": "object",
+      "required": ["prop", "eq"],
+      "additionalProperties": false,
+      "properties": {
+        "prop": { "type": "string" },
+        "eq":   { "type": ["string", "number", "boolean"] }
+      }
+    },
+
+    "realizeEntry": {
+      "type": "object",
+      "required": ["target"],
+      "additionalProperties": true,
+      "properties": {
+        "target": { "type": "string" },
+        "when":   { "anyOf": [ { "type": "null" }, { "$ref": "#/$defs/whenCond" } ] },
+        "presentation": { "type": "object" },
+        "browse":       { "type": "object" },
+        "commit":       { "type": "object" },
+        "surface":      { "type": ["object", "string"] },
+        "drop":         { "type": "array", "items": { "type": "string" } },
+        "wire": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string" },
+              "to":   { "type": "string" },
+              "arg":  { "type": "string" },
+              "when": { "$ref": "#/$defs/whenCond" }
+            }
+          }
+        },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}
