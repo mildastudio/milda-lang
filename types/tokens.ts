@@ -12,6 +12,7 @@ export type PrimitiveTokenType =
   | 'shadow'
   | 'typography'
   | 'fontFamily'
+  | 'fontWeight'
   | 'duration'
   | 'opacity'
   | 'blur'
@@ -62,6 +63,10 @@ export interface FontFamilyValue {
   assetId?: Id | null
 }
 
+export interface FontWeightValue {
+  weight: number
+}
+
 export interface TypographyValue {
   family: TokenRef | FontFamilyValue
   size: DimensionValue
@@ -109,6 +114,7 @@ export interface TokenValueSchemaByType {
   shadow: ShadowValue
   typography: TypographyValue
   fontFamily: FontFamilyValue
+  fontWeight: FontWeightValue
   duration: DurationValue
   opacity: OpacityValue
   blur: BlurValue
@@ -177,6 +183,7 @@ export const TOKEN_VALUE_KIND: Record<
   | 'shadow'
   | 'typography'
   | 'fontFamily'
+  | 'fontWeight'
   | 'duration'
   | 'opacity'
   | 'blur'
@@ -191,6 +198,7 @@ export const TOKEN_VALUE_KIND: Record<
   shadow: 'shadow',
   typography: 'typography',
   fontFamily: 'fontFamily',
+  fontWeight: 'fontWeight',
   duration: 'duration',
   opacity: 'opacity',
   blur: 'blur',

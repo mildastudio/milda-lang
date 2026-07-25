@@ -3,13 +3,24 @@ import type { Id } from './ast'
 export type FacetName =
   | 'fill'
   | 'ink'
-  | 'border'
+  | 'border' // all sides
+  | 'border.top'
+  | 'border.right'
+  | 'border.bottom'
+  | 'border.left'
+  | 'border.inline-start' // logical (writing-direction) sides
+  | 'border.inline-end'
+  | 'border.block-start'
+  | 'border.block-end'
   | 'corner'
   | 'inset'
   | 'gap'
   | 'text'
   | 'textClamp'
   | 'textWrap'
+  | 'weight' // font-weight (typography axis §3)
+  | 'font' // font-family (typography axis §3)
+  | 'slant' // font-style: normal | italic | oblique (typography axis §3)
   | 'elevation'
   | 'overlay'
   | 'opacity'
@@ -21,10 +32,21 @@ export type InsetValue =
   | { top?: Id; right?: Id; bottom?: Id; left?: Id }
   | { all: Id }
 
+export type BorderFacetStyle = 'solid' | 'dashed' | 'dotted'
+
+// A border facet is multi-valued: a width token, a color token, and an optional style
+// keyword (any subset). Used by `border` (all sides) and the per-side border facets.
+export interface BorderFacetValue {
+  width?: Id
+  color?: Id
+  style?: BorderFacetStyle
+}
+
 export type FacetValue =
   | { token: Id }
   | { literal: string | number | boolean }
   | { inset: InsetValue }
+  | { border: BorderFacetValue }
   | { raw: string }
 
 export type FacetMap = Partial<Record<FacetName, FacetValue>>

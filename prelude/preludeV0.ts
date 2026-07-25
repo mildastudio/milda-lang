@@ -995,15 +995,26 @@ const archetypes: ArchetypeDef[] = [
         children: [
           { name: 'area', role: 'container' },
           { name: 'hue', role: 'container' },
+          { name: 'alpha', role: 'container' },
+          { name: 'eyedropper', role: 'control' },
           { name: 'input', role: 'input' },
+          {
+            name: 'swatches',
+            role: 'container',
+            children: [{ name: 'swatch', role: 'item' }],
+          },
         ],
       },
     ],
     composes: ['range', 'value-entry', 'presentation', 'dismiss'],
-    // Behavior is the shared framework-agnostic color core (proposal 0029,
-    // targets/behavior/color.ts): HSV<->RGB<->hex math + the saturation/value area
-    // and hue slider geometry, so every target computes an identical picker.
-    realizationNote: 'web SV-area + hue slider + hex input · native color input fallback',
+    // Behavior is the shared framework-agnostic color core (proposal 0029/0035,
+    // targets/behavior/color.ts): HSV<->RGB<->hex + OKLCH math and the area/hue/alpha
+    // geometry, so every target computes an identical picker. node.colorPicker (0035)
+    // picks the working space (srgb|oklch), the editable format tabs (hex/rgb/hsl/hsb),
+    // opacity, eyedropper, preset swatches, and popover-vs-inline layout. The `alpha`,
+    // `eyedropper` and `swatches` parts render only when their config flag is on.
+    realizationNote:
+      'web: SV/OKLCH area + hue + optional alpha, format tabs, eyedropper, swatches, popover|inline · native color input fallback',
   },
   {
     kind: 'archetype',
@@ -1522,6 +1533,14 @@ const facets: FacetDef[] = [
     covers: 'edge: color + width (hairline|thin|thick) + style',
     divergence: 'iOS often overlay-stroke',
   },
+  { name: 'border.top', covers: 'top edge (physical side)' },
+  { name: 'border.right', covers: 'right edge (physical side)' },
+  { name: 'border.bottom', covers: 'bottom edge (physical side)' },
+  { name: 'border.left', covers: 'left edge (physical side)' },
+  { name: 'border.inline-start', covers: 'leading edge (logical, writing-direction)' },
+  { name: 'border.inline-end', covers: 'trailing edge (logical, writing-direction)' },
+  { name: 'border.block-start', covers: 'block-start edge (logical)' },
+  { name: 'border.block-end', covers: 'block-end edge (logical)' },
   { name: 'corner', covers: 'corner radius (token role)' },
   { name: 'inset', covers: 'internal padding (block/inline)' },
   { name: 'gap', covers: 'spacing between children' },
@@ -1536,6 +1555,17 @@ const facets: FacetDef[] = [
     divergence: 'web -webkit-line-clamp · .lineLimit · maxLines+overflow',
   },
   { name: 'textWrap', covers: 'wrap | nowrap | break' },
+  {
+    name: 'weight',
+    covers: 'font-weight (typography axis §3, split out of the `text` role bundle)',
+    divergence: 'web font-weight · .fontWeight · TextStyle.fontWeight',
+  },
+  {
+    name: 'font',
+    covers: 'font-family (typography axis §3)',
+    divergence: 'web font-family · UIFont · Typeface',
+  },
+  { name: 'slant', covers: 'font-style: normal | italic | oblique (typography axis §3)' },
   {
     name: 'elevation',
     covers: 'depth',

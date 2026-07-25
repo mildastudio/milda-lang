@@ -9,6 +9,10 @@ export interface ValidationIssue {
   code: string
   message: string
   where?: string
+  // The id of the most specific entity this issue concerns (token / component id).
+  // Lets tooling place the diagnostic on a source span (see NodeSpan) even though
+  // `where` is a human-readable string. Part/state issues carry the component id.
+  id?: string
 }
 
 function facetTokenRefs(facets: FacetMap | undefined): string[] {
@@ -19,6 +23,10 @@ function facetTokenRefs(facets: FacetMap | undefined): string[] {
     if ('token' in v) ids.push(v.token)
     else if ('inset' in v) {
       for (const edge of Object.values(v.inset)) if (typeof edge === 'string') ids.push(edge)
+    } else if ('border' in v) {
+      // Only the color is a foundations token ref; the width is a border-width scale
+      // keyword (hairline|thin|thick), not a document token, so don't dangling-check it.
+      if (v.border.color) ids.push(v.border.color)
     }
   }
   return ids
@@ -53,12 +61,16 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
     for (const tok of layer.tokens) {
       if (tok.value.kind === 'alias') {
         const where = `token ${tok.name} (${tok.id})`
-        if (!groupIds.has(tok.value.by)) {
+        // An empty `by` is a default-only alias (the lowering of an unconditional
+        // ref, e.g. `token x : color = accent.9`), not a reference to a context
+        // group — so there's no group to be "unknown".
+        if (tok.value.by !== '' && !groupIds.has(tok.value.by)) {
           issues.push({
             severity: 'error',
             code: 'alias.unknownGroup',
             message: `alias by unknown context group "${tok.value.by}"`,
             where,
+            id: tok.id,
           })
         }
         for (const refId of Object.values(tok.value.refs)) {
@@ -68,6 +80,7 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
               code: 'alias.danglingRef',
               message: `alias ref points at missing token "${refId}"`,
               where,
+              id: tok.id,
             })
           }
         }
@@ -77,12 +90,16 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
 
   for (const comp of doc.components) {
     const where = `component ${comp.name} (${comp.id})`
-    if (!archetypeNames.has(comp.archetype)) {
+    // Archetype-less components are legal: purely structural primitives (Heading,
+    // Text, Box, Flex, Grid, Container, …) declare no archetype. Only validate a
+    // declared one.
+    if (comp.archetype !== '' && !archetypeNames.has(comp.archetype)) {
       issues.push({
         severity: 'error',
         code: 'component.unknownArchetype',
         message: `unknown archetype "${comp.archetype}"`,
         where,
+        id: comp.id,
       })
     }
 
@@ -94,6 +111,7 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
           code: 'param.danglingProp',
           message: `param "${param}" binds missing prop "${binding.prop}"`,
           where,
+          id: comp.id,
         })
       }
     }
@@ -129,6 +147,7 @@ function checkPart(
           code: 'facet.unknown',
           message: `unknown facet "${name}"`,
           where: scope,
+          id: comp.id,
         })
       }
     }
@@ -139,6 +158,7 @@ function checkPart(
           code: 'facet.danglingToken',
           message: `facet references missing token "${id}"`,
           where: scope,
+          id: comp.id,
         })
       }
     }
@@ -151,6 +171,7 @@ function checkPart(
           code: 'layout.danglingToken',
           message: `layout references missing token "${id}"`,
           where: scope,
+          id: comp.id,
         })
       }
     }
@@ -166,6 +187,7 @@ function checkPart(
         code: 'state.unknown',
         message: `unknown state "${stateName}"`,
         where: scope,
+        id: comp.id,
       })
     }
     checkFacets(override?.facets, scope)

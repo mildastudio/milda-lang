@@ -27,6 +27,7 @@ export type {
   ShadowValue,
   FontCategory,
   FontFamilyValue,
+  FontWeightValue,
   TypographyValue,
   DurationValue,
   OpacityValue,
@@ -53,6 +54,8 @@ export type {
   FacetName,
   InsetValue,
   FacetValue,
+  BorderFacetValue,
+  BorderFacetStyle,
   FacetMap,
   StackAxis,
   AxisIntent,
@@ -75,6 +78,9 @@ export type {
   PartState,
   PartVariant,
   Part,
+  PartSlot,
+  PartSlotArity,
+  PartSlotAccepts,
   Anatomy,
   Predicate,
   PredicateRef,
@@ -149,6 +155,15 @@ export type {
 export { conformance } from './engine/conformance'
 
 export { parseMildaDocument } from './dsl/parse'
-export type { ParseResult, ParseIssue, ParseOptions, DesignSystemDocument } from './dsl/parse'
+export type {
+  ParseResult,
+  ParseIssue,
+  ParseOptions,
+  DesignSystemDocument,
+  NodeSpan,
+  SpanKind,
+  SourceRange,
+  SourcePosition,
+} from './dsl/parse'
 export { lex, LexError } from './dsl/lexer'
 export type { Token as DslToken } from './dsl/lexer'

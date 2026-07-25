@@ -88,9 +88,26 @@ export interface PartVariant {
   layout?: LayoutSpec
 }
 
+export type PartSlotArity = 'single' | 'optional' | 'many'
+
+export type PartSlotAccepts =
+  | { kind: 'content' }
+  | { kind: 'type'; ref: string }
+  | { kind: 'component'; ref: string }
+
+// A part that is a content slot: a named insertion point consumers fill. Mirrors the
+// editor IR's `NodeSlot` (arity + what it accepts); lowered onto the node in the IR.
+export interface PartSlot {
+  arity: PartSlotArity
+  accepts: PartSlotAccepts
+}
+
 export interface Part {
   layout?: LayoutSpec
   facets?: FacetMap
+  // Content slot (proposal 0004/0011): this part exposes a fill point rather than fixed
+  // content. Emitted as a `slot [arity] [of <accepts>]` line inside the part block.
+  slot?: PartSlot
   // Conditional presence (proposal 0031/0032) — the node renders only when this predicate
   // holds. Emitted as a `present when <predicate>` line inside the `part { … }` block;
   // lowered to the node's `presence` field in the IR.
@@ -132,6 +149,10 @@ export interface BrowseRealize {
 export interface CommitRealize {
   mode: 'explicit' | 'continuous'
   on?: string[]
+  // Continuous-commit event wiring: the machine event for a live (in-progress) update
+  // vs the settled (final) commit, e.g. `commit continuous { live R.change; settled R.commit }`.
+  live?: string
+  settled?: string
 }
 
 export interface Realization {
@@ -144,6 +165,11 @@ export interface Realization {
   drop?: string[]
   wire?: Wire[]
   note?: string
+  // Overlay realization (proposal 0034): the dismiss trigger set (`outside|escape|
+  // closeButton`, empty for a non-dismissable alert) and the backdrop kind. Lowered
+  // onto the node's `overlay` config in the IR.
+  dismiss?: string[]
+  backdrop?: string
 }
 
 // Component-level behavior composition (the §9 algebra) — proposal 0024. Reuses the
