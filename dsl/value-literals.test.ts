@@ -40,7 +40,7 @@ describe('first-class value literals', () => {
   })
 
   it('also parses first-class literals inside structured values (typography)', () => {
-    const v = tok('token t : typography = { role: "body"; size: 1rem; line: 1.5rem }').value as {
+    const v = tok('token t : typography = { role: "body"; size: 1rem; line: 1.5rem }').value as unknown as {
       value: { size: unknown; line: unknown }
     }
     expect(v.value.size).toEqual({ value: 1, unit: 'scaled' })

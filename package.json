@@ -23,12 +23,14 @@
   "scripts": {
     "build": "tsup index.ts --format esm,cjs --dts --clean",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "check:prelude": "tsx engine/prelude.check.ts"
   },
   "devDependencies": {
     "@types/node": "^20",
     "tsup": "^8.5.1",
     "tsx": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
