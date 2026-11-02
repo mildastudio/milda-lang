@@ -4,6 +4,7 @@ import type { Component, Part } from '../types/components'
 import type { FacetMap, LayoutSpec } from '../types/facets'
 import { findToken } from './resolveToken'
 import { couldBeLiteral } from '../dsl/literal'
+import { missingRequiredParts } from '../prelude/required'
 
 export interface ValidationIssue {
   severity: 'error' | 'warning'
@@ -152,6 +153,22 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
         severity: 'error',
         code: 'component.unknownArchetype',
         message: `unknown archetype "${comp.archetype}"`,
+        where,
+        id: comp.id,
+      })
+    }
+
+    // A required part the file leaves out (0055). The reader still restores it, so the file
+    // works - but which parts a component has is the one thing the editor will not let an author
+    // change, and a file that does not show them is a file whose tree the author cannot see. Only
+    // the topmost missing part is reported; the parts under it come with it.
+    const archetype = prelude.archetypes.find((a) => a.name === comp.archetype)
+    for (const gap of missingRequiredParts(archetype, comp.anatomy)) {
+      if (gap.implied) continue
+      issues.push({
+        severity: 'error',
+        code: 'part.required',
+        message: `a ${comp.archetype} requires the part "${gap.path}" (${gap.kind})`,
         where,
         id: comp.id,
       })

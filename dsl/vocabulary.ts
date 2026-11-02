@@ -460,6 +460,19 @@ export const LOGICAL_EDGES = [
 ] as const
 export type LogicalEdge = (typeof LOGICAL_EDGES)[number]
 
+/** The edges an inset can be stated on, besides all four at once (proposal 0057). A dotted facet
+ *  name each - `inset.inline`, `inset.block-start` - the way `border` takes `.<edge>`. The bare
+ *  `inset` already means all four, so `all` is not one of them. */
+export const INSET_EDGES = [
+  'block',
+  'inline',
+  'block-start',
+  'block-end',
+  'inline-start',
+  'inline-end',
+] as const satisfies readonly LogicalEdge[]
+export type InsetEdge = (typeof INSET_EDGES)[number]
+
 /** The physical edge words the parser used to take, read as the logical edge each names in a
  *  horizontal left-to-right system. Read, never offered, never written - the `rgba` treatment. */
 export const PHYSICAL_EDGE_ALIASES: Readonly<Record<string, LogicalEdge>> = {
@@ -529,6 +542,18 @@ export function camelField(s: string): string {
 // self-delimiting, so a 0.7 reader loses the statement it does not know and keeps the file -
 // but it does not know the words, and the version is what says it may meet them.
 //
+// 0.8 -> 0.9: what a part IS is said where it is named (proposal 0055): `part Button: container {`.
+// The second BREAKING step after 0.3 -> 0.4, and worse than an unknown statement: a 0.8 reader
+// expects `{` after the name, so the header costs it the first part's body and every part after
+// it. `kind container` in the body stays valid for good. The same step takes `locked` out of the
+// language: whether a part may be removed is what the archetype requires, so the reader works it
+// out and the writer never prints it; an old `locked` is read and ignored.
+//
+// 0.9 -> 0.10: an inset is said on one axis or one edge (proposal 0057): `inset.inline`,
+// `inset.block` and the four `inset.<logical edge>` statements. Each is a self-delimiting facet
+// statement, so a 0.9 reader skips it with an unknown-facet warning and keeps the file - it
+// loses that padding, not the part.
+//
 // These live here, with the rest of the closed surface, because the reader and the writer
 // both need them and disagreeing is a defect. They had been declared separately in the
 // parser (as `'0.1'`) and the printer (as `'0.5'`), which meant a file with no header was
@@ -538,5 +563,5 @@ export function camelField(s: string): string {
 //
 // This is the DEFAULT only. A document that carries its own version keeps it, so
 // re-exporting an older file does not silently claim it uses syntax it does not.
-export const MILDA_SURFACE_VERSION = '0.8'
+export const MILDA_SURFACE_VERSION = '0.10'
 export const PRELUDE_VERSION = '0.0.2'

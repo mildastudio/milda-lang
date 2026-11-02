@@ -256,30 +256,30 @@ it composes and the notable per-platform realization/substitution.
 
 Token-valued, abstract, cross-platform. Replaces `CSSProp`.
 
-| facet        | covers                                                                                                                                                                            | divergence                                                    |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `fill`       | surface/background                                                                                                                                                                | -                                                             |
-| `ink`        | text + icon foreground                                                                                                                                                            | -                                                             |
-| `border`     | edge: `color` + width (`hairline\|thin\|thick`) + style; bare = all edges, `border.<edge>` = one logical edge (`block-start\|block-end\|inline-start\|inline-end\|block\|inline`) | iOS often overlay-stroke; physical edges are realize-only     |
-| `corner`     | corner radius (token role)                                                                                                                                                        | -                                                             |
-| `inset`      | internal padding (block/inline)                                                                                                                                                   | -                                                             |
-| `gap`        | spacing between children                                                                                                                                                          | -                                                             |
-| `text`       | typography **role** (`body\|caption\|title…`) - bundles size/weight/line/tracking                                                                                                 | iOS Dynamic Type = OS-resolved role                           |
-| `text.clamp` | truncate to N lines + ellipsis                                                                                                                                                    | web `-webkit-line-clamp` · `.lineLimit` · `maxLines+overflow` |
-| `text.wrap`  | `wrap \| nowrap \| break`                                                                                                                                                         | -                                                             |
-| `font`       | font-family (token, type `font-family`) - overrides the role's family orthogonally                                                                                                | OS-default stacks vary                                        |
-| `slant`      | font-style axis: `normal \| italic \| oblique` (a mode, no token layer)                                                                                                           | -                                                             |
-| `weight`     | font-weight (token, type `font-weight`) - overrides the role's bundled weight                                                                                                     | -                                                             |
-| `elevation`  | depth                                                                                                                                                                             | **web box-shadow · Android tonal-elevation · iOS none/sheet** |
-| `overlay`    | state layer (Material hover/press tint)                                                                                                                                           | Material-specific; web ≈ bg shift                             |
-| `opacity`    | transparency                                                                                                                                                                      | -                                                             |
-| `ring`       | focus indicator                                                                                                                                                                   | desktop ring · mobile none · tv strong highlight              |
-| `backdrop`   | scrim / blur behind layer                                                                                                                                                         | iOS material/vibrancy                                         |
+| facet        | covers                                                                                                                                                                                    | divergence                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `fill`       | surface/background                                                                                                                                                                        | -                                                             |
+| `ink`        | text + icon foreground                                                                                                                                                                    | -                                                             |
+| `border`     | edge: `color` + width (`hairline\|thin\|thick`) + style; bare = all edges, `border.<edge>` = one logical edge (`block-start\|block-end\|inline-start\|inline-end\|block\|inline`)         | iOS often overlay-stroke; physical edges are realize-only     |
+| `corner`     | corner radius (token role)                                                                                                                                                                | -                                                             |
+| `inset`      | internal padding: bare = all edges or `<block> <inline>`; `inset.block`/`inset.inline` = one axis; `inset.<edge>` = one logical edge (`block-start\|block-end\|inline-start\|inline-end`) | physical edges are realize-only                               |
+| `gap`        | spacing between children                                                                                                                                                                  | -                                                             |
+| `text`       | typography **role** (`body\|caption\|title…`) - bundles size/weight/line/tracking                                                                                                         | iOS Dynamic Type = OS-resolved role                           |
+| `text.clamp` | truncate to N lines + ellipsis                                                                                                                                                            | web `-webkit-line-clamp` · `.lineLimit` · `maxLines+overflow` |
+| `text.wrap`  | `wrap \| nowrap \| break`                                                                                                                                                                 | -                                                             |
+| `font`       | font-family (token, type `font-family`) - overrides the role's family orthogonally                                                                                                        | OS-default stacks vary                                        |
+| `slant`      | font-style axis: `normal \| italic \| oblique` (a mode, no token layer)                                                                                                                   | -                                                             |
+| `weight`     | font-weight (token, type `font-weight`) - overrides the role's bundled weight                                                                                                             | -                                                             |
+| `elevation`  | depth                                                                                                                                                                                     | **web box-shadow · Android tonal-elevation · iOS none/sheet** |
+| `overlay`    | state layer (Material hover/press tint)                                                                                                                                                   | Material-specific; web ≈ bg shift                             |
+| `opacity`    | transparency                                                                                                                                                                              | -                                                             |
+| `ring`       | focus indicator                                                                                                                                                                           | desktop ring · mobile none · tv strong highlight              |
+| `backdrop`   | scrim / blur behind layer                                                                                                                                                                 | iOS material/vibrancy                                         |
 
 State overrides nest inside a part: `option { selected { fill … } active { … } }`.
 
 **Facet names may carry one sub-key (v0.1)** - `<facet>.<subkey>` (`text.clamp`, `text.wrap`,
-`border.inline-start`). Exactly one level; the grammar's `facetname` (proposal 0002) admits
+`border.inline-start`, and since v0.10 `inset.inline-start`). Exactly one level; the grammar's `facetname` (proposal 0002) admits
 this, which also legitimizes the long-standing `text.*` names.
 
 ### Divergent facets resolve through tokens, not `realize`
@@ -356,7 +356,7 @@ emit no container for it and a native canvas stacks its children as a column.
 | facet        | values                                                                                    |
 | ------------ | ----------------------------------------------------------------------------------------- |
 | `gap`        | spacing between children (token or length)                                                |
-| `inset`      | padding: one value for all edges, or `<block> <inline>`                                   |
+| `inset`      | padding: one value for all edges, or `<block> <inline>`; one axis or edge as a facet      |
 | `distribute` | main axis: `start\|center\|end\|between\|around\|evenly` (horizontal in a `layers` stack) |
 | `align`      | cross axis: `start\|center\|end\|stretch\|baseline` (vertical in a `layers` stack)        |
 | `wrap`       | `nowrap\|wrap\|wrap-reverse` (v0.1) - `stack` + `wrap` is the `flow` macro                |

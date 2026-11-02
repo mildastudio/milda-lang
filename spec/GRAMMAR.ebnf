@@ -1,5 +1,5 @@
 (* ============================================================================
-   Milda DSL - concrete syntax grammar, v0.8 (2026-11-01)   (ISO/IEC 14977 EBNF)
+   Milda DSL - concrete syntax grammar, v0.10 (2026-11-02)  (ISO/IEC 14977 EBNF)
 
    The NORMATIVE abstract syntax is the canonical AST (PRELUDE.md §10). This
    grammar defines the human surface syntax - *sugar* that desugars 1:1 onto the
@@ -63,6 +63,20 @@
    block, so a 0.7 reader loses the statement it does not know and keeps the file - but it does
    not know the words, and the version says it may meet them. The spellings this replaces are
    read and never written: `ratio w h` as a key, the physical edge words, `flow` for `wrap wrap`.
+   v0.9 CHANGE - what a part IS, said where it is named (proposal 0055, 2026-11-02).
+   `part Button: container {` - the kind after a colon, which already means "a name, then what it
+   is" (v0.4), then the body. It lowers to the same AST field as `kindstmt`, which stays valid for
+   good; only the header is printed. BREAKING for readers: a 0.8 reader expects `{` after the name
+   and loses the component, not one line. `locked` leaves the language in the same step: which
+   parts may not be removed is what the archetype REQUIRES, so a reader derives it; `lockedstmt`
+   is still read (and ignored) so older files keep parsing. `origin` stays a body statement, and a
+   part keeps its braces even when its body is empty.
+   v0.10 ADDITION - an inset on one axis or one edge (proposal 0057, 2026-11-02).
+   `inset.inline` / `inset.block` and `inset.block-start|block-end|inline-start|inline-end`, each a
+   facet statement holding one value, beside the bare `inset`. The most specific statement wins
+   on its edge. Edges are LOGICAL; `inset.top|right|bottom|left` are read as the logical edge they
+   name left to right, with a warning, and never written. Self-delimiting: a 0.9 reader skips the
+   statement and keeps the file.
    v0.1 FROZEN: punch-list A1–A4 merged; AST formalized in ast.schema.json (validate.js).
    Executable tracks next (B2): tree-sitter + PEG generated from this EBNF.
    DEFERRED: the prelude state-machine notation (§9 - its own grammar) and the
@@ -229,8 +243,13 @@ eventdecl     = ident , [ "from" , machineref ] , [ terminator ] ;
 (* v0.3 (0041) - the part name is a PATH: `root.surface.label` is the child `label` of the
    child `surface` of `root`. The prefix IS the parent, which is how the node tree is carried;
    printing one flattened segment per node made every nested node a sibling of its parent. *)
-part       = "part" , partpath , "{" , { pstmt } , "}" ;          (* ⇒ component.anatomy.<part> *)
+part       = "part" , partpath , [ ":" , ident ] ,                (* ⇒ component.anatomy.<part> *)
+             "{" , { pstmt } , "}" ;
 partpath   = segment , { "." , segment } ;                        (* the node's address, used by every reference to it *)
+(* v0.9 (0055) - the header. `":" , ident` ⇒ node.kind, as `kindstmt`. Said in both places: the
+   same kind twice warns, two different kinds are an error and the HEADER wins (it is what the
+   writer prints). Any other word before the `{` is an error, and the reader skips it and reads
+   the body. Whether a part may be removed is not in the grammar: the archetype requires it. *)
 pstmt      = layoutblock | stateblock | whenblock | slotstmt | facetstmt
            (* v0.3 (0041) - what the part IS, not only how it is painted: *)
            | kindstmt | originstmt | lockedstmt | presentstmt | contentstmt | a11yblock
@@ -245,7 +264,9 @@ kindstmt   = "kind" , ident ;              (* ⇒ node.kind - NEUTRAL (container
                                               deliberately NOT carried: a file that spells out
                                               div/span/svg is a DOM description. *)
 originstmt = "origin" , ( "root" | "archetype" | "author" ) ;      (* ⇒ node.origin - provenance *)
-lockedstmt = "locked" ;                                            (* ⇒ node.locked *)
+lockedstmt = "locked" ;                                            (* read and IGNORED since v0.9 (0055): the
+                                                                      archetype decides which parts are
+                                                                      required; never written *)
 presentstmt= "present" , "when" , predicate ;                      (* ⇒ node.presence (0031/0032) *)
 contentstmt= "content" , ( partvalue                               (* ⇒ node.content *)
              | "{" , { ( "default" , partvalue | "when" , predicate , arrow , partvalue
@@ -339,7 +360,8 @@ whenblock  = "when" , condition , "{" , { facetstmt | layoutblock } , "}" ;
                                                                   (* ⇒ part.variants[] {when} - state-less prop paint, proposal 0025 *)
 facetstmt  = facetname , value , { value } , [ terminator ] ;    (* ⇒ facets/layout entry *)
 facetname  = ident , [ "." , ident ] ;                           (* v0.1 - facet + optional sub-key:
-                                                                    text.clamp, text.wrap, border.inline-start *)
+                                                                    text.clamp, text.wrap, border.inline-start;
+                                                                    v0.10 inset.inline, inset.inline-start (0057) *)
 value      = path | propref | string | number | ident ;          (* path ⇒ {token}; else raw/intent *)
 
 (* ---------- v0.3 the library around the components (proposal 0041) ---------- *)

@@ -111,6 +111,7 @@ import {
   LAYOUT_DIRECTIONS,
   LAYOUT_DISTRIBUTES,
   LAYOUT_WRAPS,
+  INSET_EDGES,
   LOGICAL_EDGES,
   MILDA_SURFACE_VERSION,
   LENGTH_LITERAL_FNS,
@@ -237,6 +238,9 @@ const FACET_MAP: Record<string, FacetName | null> = {
   'border.block-end': 'border.block-end',
   corner: 'corner',
   inset: 'inset',
+  // One axis or one edge (proposal 0057), from the vocabulary so the parser, the printer and
+  // the LSP cannot disagree about which edges there are.
+  ...Object.fromEntries(INSET_EDGES.map((e) => [`inset.${e}`, `inset.${e}` as FacetName])),
   gap: 'gap',
   text: 'text',
   'text.clamp': 'textClamp',
@@ -375,7 +379,6 @@ export const SLOT_ARITIES: readonly string[] = ['single', 'optional', 'many']
 export const PART_KEYWORDS: readonly string[] = [
   'kind',
   'origin',
-  'locked',
   'present',
   'slot',
   'content',
@@ -2465,7 +2468,19 @@ class Parser {
 
   // A single facet statement `facetname value+` → [FacetName, FacetValue] | null.
   private parseFacetStmt(): { name: FacetName; value: FacetValue } | null {
-    const raw = this.expectWord('facet-name')
+    let raw = this.expectWord('facet-name')
+    // `inset.left` and friends: read as the logical edge they name left to right, with a
+    // warning, never written - the treatment 0056 gave `pinned top` (proposal 0057 §4.2).
+    const physical = /^inset\.(top|right|bottom|left)$/.exec(raw)
+    if (physical) {
+      const logical = `inset.${PHYSICAL_EDGE_ALIASES[physical[1]!]}`
+      this.issue(
+        'warning',
+        'inset-physical',
+        `'${raw}' is read as '${logical}' - write the logical edge`,
+      )
+      raw = logical
+    }
     const mapped = FACET_MAP[raw]
     if (mapped === undefined) {
       this.issue('warning', 'facet-unknown', `unknown facet "${raw}" skipped`)
@@ -2484,6 +2499,18 @@ class Parser {
     // inset takes 1–2 args (block, inline).
     if (mapped === 'inset') {
       return { name: 'inset', value: { inset: this.parseInsetArgs() } }
+    }
+    // One axis or one edge takes one value, read exactly as one `inset` argument is, so
+    // `inset.inline 8px` and `inset 8px` mean the same thing on the edges they reach.
+    if (mapped.startsWith('inset.')) {
+      const w = this.at('word') ? this.next().value : undefined
+      if (w === undefined) {
+        this.issue('error', 'facet-value', `"${raw}" needs a value`)
+        this.skipToTerminator()
+        return null
+      }
+      if (!this.at('semi') && !this.at('newline') && !this.at('rbrace')) this.skipToTerminator()
+      return { name: mapped, value: { token: tokId(w) } }
     }
     // border (all sides) and per-side borders are multi-valued: any subset of a color
     // token (dotted ref), a width token (bare width id like `thick`), and a style
@@ -2994,15 +3021,46 @@ class Parser {
     return out
   }
 
-  // `part PATH { pstmt* }` → [path, Part]. The name is a dotted PATH: its prefix is its
-  // parent part, which is how the tree is written down (proposal 0041).
+  // What a part IS, said where it is named (proposal 0055 §3.2): `part Button: container {`.
+  // Lowers to the same `kind` field as the body statement, so nothing below the parser can tell
+  // which spelling was written. Returns what the header said, which is what the body's `kind`
+  // is checked against (§3.3).
+  private parsePartHeader(part: Part): { kind?: string } {
+    const said: { kind?: string } = {}
+    if (this.at('colon')) {
+      this.next()
+      if (!this.at('word')) {
+        this.issue('error', 'part-header-kind', "expected the part's kind after ':'")
+      } else {
+        said.kind = this.next().value
+        part.kind = said.kind
+      }
+    }
+    // Then the `{`. Anything else on the line is skipped to the brace, so one unknown word costs
+    // one diagnostic and the body is still read. The skip stops at the end of the line: a header
+    // with no brace must not swallow the parts after it.
+    while (!this.at('lbrace') && !this.atValueEnd()) {
+      const tok = this.next()
+      this.issue(
+        'error',
+        'part-header-word',
+        `unexpected ${JSON.stringify(tok.value)} in a part header - expected '{'`,
+        tok,
+      )
+    }
+    return said
+  }
+
+  // `part PATH [: KIND] { pstmt* }` → [path, Part]. The name is a dotted PATH: its
+  // prefix is its parent part, which is how the tree is written down (proposal 0041).
   private parsePart(): [string, Part] | null {
     const kw = this.next() // 'part'
     const nameTok = this.peek()
     const name = this.expectWord('part-name')
     if (!name) return null
-    this.expect('lbrace', 'part-lbrace')
     const part: Part = {}
+    const header = this.parsePartHeader(part)
+    this.expect('lbrace', 'part-lbrace')
     const facets: FacetMap = {}
     const variants: PartVariant[] = []
     while (!this.at('rbrace') && !this.at('eof')) {
@@ -3035,15 +3093,31 @@ class Parser {
         this.next() // 'slot'
         part.slot = this.parseSlot()
       } else if (this.atWord('kind')) {
-        this.next()
-        part.kind = this.expectWord('part-kind')
+        // The statement form, valid for good (0055 §3.3). Next to a header kind it is either
+        // a repeat or a contradiction, and the header wins the contradiction because the
+        // writer prints the header: that is the spelling a saved file most likely meant.
+        const tok = this.next()
+        const stated = this.expectWord('part-kind')
+        if (header.kind === undefined) part.kind = stated
+        else if (stated === header.kind)
+          this.issue('warning', 'part-kind-twice', `kind '${stated}' is stated twice`, tok)
+        else if (stated)
+          this.issue(
+            'error',
+            'part-kind-conflict',
+            `kind '${stated}' contradicts the header's '${header.kind}' - the header wins`,
+            tok,
+          )
       } else if (this.atWord('origin')) {
         this.next()
         const o = this.expectWord('part-origin')
         if (o === 'root' || o === 'archetype' || o === 'author') part.origin = o
       } else if (this.atWord('locked')) {
+        // Read and dropped (0055): which parts may not be removed is what the archetype
+        // requires, and the reader works that out. Silently, on purpose - every part of a file
+        // written before 0.9 says it, and an import listing hundreds of notes about a word that
+        // changes nothing is the noise `inline-literal` taught this reader to avoid.
         this.next()
-        part.locked = true
       } else if (this.atWord('content')) {
         this.next()
         part.content = this.parsePartContent()

@@ -1,5 +1,6 @@
 import type { Id } from './ast'
 import type {
+  InsetEdge,
   LayoutAlign,
   LayoutDirection,
   LayoutDistribute,
@@ -20,7 +21,8 @@ export type FacetName =
   | 'border.block-start'
   | 'border.block-end'
   | 'corner'
-  | 'inset'
+  | 'inset' // all four edges, or `<block> <inline>`
+  | `inset.${InsetEdge}` // one axis or one edge, logical (proposal 0057)
   | 'gap'
   | 'text'
   | 'textClamp'
@@ -34,8 +36,11 @@ export type FacetName =
   | 'ring'
   | 'backdrop'
 
-export type InsetValue =
-  { block?: Id; inline?: Id } | { top?: Id; right?: Id; bottom?: Id; left?: Id } | { all: Id }
+// The bare `inset` statement: one value for all four edges, or the block axis then the inline
+// axis. One axis or one edge alone is its own facet, `inset.<edge>` (proposal 0057), holding a
+// token value. A physical `{ top, right, bottom, left }` arm used to sit here; nothing produced
+// it, and its lowering read only `top` and `left`.
+export type InsetValue = { block?: Id; inline?: Id } | { all: Id }
 
 export type BorderFacetStyle = 'solid' | 'dashed' | 'dotted'
 

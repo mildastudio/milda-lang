@@ -1,6 +1,6 @@
 # The `.milda` file - what a reader can rely on
 
-Version **0.7** (2026-10-31). Companion to [`GRAMMAR.ebnf`](GRAMMAR.ebnf) (the surface syntax)
+Version **0.10** (2026-11-02). Companion to [`GRAMMAR.ebnf`](GRAMMAR.ebnf) (the surface syntax)
 and [`PRELUDE.md`](PRELUDE.md) §10 (the canonical AST). This document is the part an
 implementer needs that a grammar cannot state: **what the file promises to carry, what it
 deliberately does not, and how references resolve.**
@@ -143,7 +143,7 @@ carrying it - but it is **not portable**, and the target tag is what makes that 
 The header declares two versions, and they answer different questions:
 
 ```
-milda 0.8        the SURFACE version - which statements a reader may encounter
+milda 0.10       the SURFACE version - which statements a reader may encounter
 prelude 0.0.2    the design-system vocabulary (archetypes, atoms, facets)
 ```
 
@@ -191,6 +191,34 @@ reads as `fill` plus a warning - which is exactly the degradation this section a
 says a reader MAY meet the words. Three older spellings are read and never written: `ratio w h` as
 a key (the height follows the width), the physical edge words (`top` is `block-start`), and `flow`
 for `wrap wrap`. `prelude` is unaffected, and nothing that parsed as 0.7 stops parsing.
+
+**0.8 → 0.9** is the second _breaking_ change, and the first one a reader cannot ride out
+(proposal 0055). What a part IS is said where it is named: `part Button: container {`, the kind
+after the colon that already means "a name, then what it is". It lowers to exactly what
+`kind container` in the body says, and that statement stays valid for good, so every older file
+keeps reading the same; only the header is written. A 0.8 reader expects `{` after the part's
+name, and the header is not self-delimiting for one that does not know it: it loses the first
+part's body and every part after it, which is well past the "parse what it recognises" below. So
+a writer that prints a part header declares 0.9 even when the document it came from declared
+older, and a reader a user installed before 0.9 (a Mac app build, an editor extension, the
+`milda` package) has to be updated to read a file written since. The same step takes `locked`
+out of the format. Which parts a component may not lose is what its archetype REQUIRES, and the
+reader already restores a required part a file leaves out, so the flag only ever repeated the
+archetype: a reader now derives it, a writer never prints it, and an older file's `locked` is
+read and ignored. Editor tooling reports a required part a file leaves out as an error and
+offers to add it. `origin` stays in the body, and a part keeps its braces when its body is empty.
+
+**0.9 → 0.10** lets padding differ by edge (proposal 0057). Beside `inset ‹all›` and
+`inset ‹block› ‹inline›`, an inset may be stated on one axis - `inset.inline`, `inset.block` - or
+on one LOGICAL edge - `inset.inline-start`, `inset.inline-end`, `inset.block-start`,
+`inset.block-end`. Each is its own facet statement, and the most specific one wins on its edge:
+`inset space.2` with `inset.inline-start space.1` is 2 everywhere and 1 on the leading side.
+Before it, an editor document holding one axis exported as `inset ‹one›` and came back with
+padding on all four edges; a 0.10 writer prints the keys the document holds, so that loss is
+gone. A writer that prints one of the new statements declares 0.10 even when the document
+declared older. Each statement is self-delimiting, so a 0.9 reader skips it with a warning and
+keeps the file. The physical words (`inset.left`) are read as the logical edge they name left to
+right and never written. `prelude` is unaffected, and nothing that parsed as 0.9 stops parsing.
 
 A reader should accept a file whose `milda` version it does not know, parse what it recognises,
 and report the rest rather than failing: the grammar is additive, and every statement is

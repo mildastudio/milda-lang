@@ -244,10 +244,9 @@ export interface Part {
   // What kind of thing the part is (`container`/`text`/`control`/…) - neutral by design;
   // the platform ELEMENT is a target decision, never carried in the file.
   kind?: string
-  // Whether the part came from the archetype or the author added it, and whether the
-  // editor lets it be edited. Provenance, not paint.
+  // Whether the part came from the archetype or the author added it. Provenance, not paint.
+  // Whether the editor lets it go is not here: the archetype answers that (0055).
   origin?: 'root' | 'archetype' | 'author'
-  locked?: boolean
   content?: PartContent
   a11y?: PartA11y
   emits?: PartEmit[]

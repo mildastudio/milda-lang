@@ -193,6 +193,13 @@ export type {
   AnatomyPart,
 } from './types/prelude'
 export { preludeV0, atomsByName, archetypesByName, compositesByName } from './prelude/preludeV0'
+export {
+  anatomyIndex,
+  findDeclaredPart,
+  loweredAnatomy,
+  missingRequiredParts,
+} from './prelude/required'
+export type { AnatomyEntry, ArchetypeRef, MissingPart } from './prelude/required'
 
 export type { ResolvedToken } from './engine/resolveToken'
 export { resolveToken, findToken, allTokensOfType } from './engine/resolveToken'
@@ -258,6 +265,7 @@ export {
   LAYOUT_DISTRIBUTES,
   LAYOUT_RECORD_KEYS,
   LAYOUT_WRAPS,
+  INSET_EDGES,
   LOGICAL_EDGES,
   PHYSICAL_EDGE_ALIASES,
   POSITION_KINDS,
@@ -285,6 +293,7 @@ export type {
   LayoutRecordKey,
   LayoutWrap,
   LiteralChannel,
+  InsetEdge,
   LiteralFnSpec,
   LogicalEdge,
   PositionKind,
