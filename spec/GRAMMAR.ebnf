@@ -1,23 +1,71 @@
 (* ============================================================================
-   Milda DSL — concrete syntax grammar, v0.1 (frozen 2026-06-19)   (ISO/IEC 14977 EBNF)
+   Milda DSL - concrete syntax grammar, v0.8 (2026-11-01)   (ISO/IEC 14977 EBNF)
 
    The NORMATIVE abstract syntax is the canonical AST (PRELUDE.md §10). This
-   grammar defines the human surface syntax — *sugar* that desugars 1:1 onto the
+   grammar defines the human surface syntax - *sugar* that desugars 1:1 onto the
    AST. Each production notes the AST node it maps to ( ⇒ ).
 
    SCOPE (v0.0.1): the design-system authoring surface matching examples/select.json.
    v0.1 ADDITIONS (marked `v0.1` inline):
-     · prop-bound context groups — proposal 0001 (`typeexpr | "context" ident`,
+     · prop-bound context groups - proposal 0001 (`typeexpr | "context" ident`,
        `propdefault`/`aliasvalue`).
-     · facet-vocabulary closure — proposal 0002 (`facetname` = facet + optional sub-key;
+     · facet-vocabulary closure - proposal 0002 (`facetname` = facet + optional sub-key;
        legitimizes `text.clamp`/`border.inline-start`).
-     · layout-structure closure — proposal 0003 (`layoutblock` optional `when`; `bleed`
+     · layout-structure closure - proposal 0003 (`layoutblock` optional `when`; `bleed`
        position value + `wrap` container facet need no grammar change).
-     · first-class slots — proposal 0004 (`slotstmt` part-body statement: arity + content
+     · first-class slots - proposal 0004 (`slotstmt` part-body statement: arity + content
        contract + optional `keyed-by`).
+   v0.3 ADDITIONS - proposal 0041, "the file IS the design system" (2026-07-27). The surface
+   could express how a system LOOKED and not what it DID, so an export dropped a node's text,
+   its accessible name, the events it raised, what it repeated over, the component it nested,
+   its transitions and its behaviours - and, because a part name was printed as one flattened
+   segment, the node TREE. Two rules govern the additions:
+     · every concept is a STATEMENT, not a serialised blob - a reader that cannot understand
+       the file cannot port it, so `data { … }` was rejected as an answer;
+     · nothing is addressed by a workspace id - a part by its dotted PATH, a component and an
+       event by NAME, a group / asset folder by PATH, a docs page and an example by TITLE/NAME.
+       Every reference is minted by the file, so it resolves inside the file.
+     · `part` names a PATH (`root.surface.label`): its prefix is its parent, which is how the
+       tree is written down.
+   New: `partpath`, and in `pstmt` - kindstmt, originstmt, lockedstmt, contentstmt, a11yblock,
+   emitsblock, bindstmt, valuestmt, repeatstmt, cellstmt, controlstmt, groupstmt,
+   presentationstmt, mediastmt, sourcestmt, altstmt, destinationstmt, motionblock,
+   instanceblock, behaviorblock, foreignstmt, actionstmt, configblock. New top-level:
+   `groupdecl`, `example`, `docs`, `assets`; `cmember` gains `groupstmt`; `slotstmt` gains
+   `default` / `as` / `role` / `sample` / a description string.
+   v0.4 CHANGE - one spelling for "a name, then its type" (2026-07-28). `token brand : color`
+   and `field : string` wrote the colon; `propdecl` and `demoblock` did not, so the surface
+   disagreed with itself about a single idea. The colon is now REQUIRED in both, and written
+   by the printer. This is the surface's first BREAKING change, hence the version bump.
+   v0.5 ADDITION - a unitless ratio has a WORD (2026-08-06). A line height is written
+   `token leading/normal : ratio = 1.5`. No new production: `tokendecl` always took an `ident`
+   for the type, so this is vocabulary. It is still a version bump, because a 0.4 reader parses
+   the statement and then does not know the word - and its fallback types the token as a LENGTH,
+   turning 1.5 into 1.5px, which is the corruption the word exists to prevent (0041 §4). The two
+   older spellings, `line-height` and `number`, are read and never written.
+   v0.6 ADDITION - the icon library (2026-10-31). A new top-level `icons` block carries the
+   sets a part's bare glyph name resolves against and the glyphs the system curated. Before it
+   the library had no surface at all, so an imported system drew a placeholder for every icon.
+   ORDER is meaning: the first `set` answers a bare name (`icon check`). A bump because a 0.5
+   reader would skip the block and lose the library without saying so.
+   v0.7 ADDITIONS - how the system is USED (proposal 0052, 2026-10-19). Two layers. In a props
+   block, the INTERFACE constraints decided from one instance: `required`, `required when
+   <predicate>`, a prop's prose, and the group constraints `one-of` / `any-of` / `exclusive`.
+   `required` and the prose were in the AST and the IR long before they had a spelling, so
+   every export dropped them. At the top level, `rule`: a USAGE rule decided over the usage
+   tree (count, containment, token use, the preferred component), with an id, a severity and
+   a mandatory reason. Every rule statement opens with ONE keyword of its own. Also recorded
+   here, because 0051 did not: `globalprop` and the `global` line of a props block.
+   v0.8 ADDITIONS - the layout model in one size (proposal 0056, 2026-11-01). Inside a
+   `layout { }` block: an axis intent may carry `min(…)` / `max(…)` clamps and may be `ratio(w:h)`
+   (the axis that follows the other); `position` takes `pinned` and `bleed` with LOGICAL edges;
+   `grid` is a reserved key, read and reported. Every statement is inside a self-delimiting
+   block, so a 0.7 reader loses the statement it does not know and keeps the file - but it does
+   not know the words, and the version says it may meet them. The spellings this replaces are
+   read and never written: `ratio w h` as a key, the physical edge words, `flow` for `wrap wrap`.
    v0.1 FROZEN: punch-list A1–A4 merged; AST formalized in ast.schema.json (validate.js).
    Executable tracks next (B2): tree-sitter + PEG generated from this EBNF.
-   DEFERRED: the prelude state-machine notation (§9 — its own grammar) and the
+   DEFERRED: the prelude state-machine notation (§9 - its own grammar) and the
    foundations palette/semantic shorthand (sugar over `token` decls).
 
    The grammar is intentionally permissive about argument arity (a `facetstmt`
@@ -43,7 +91,30 @@ identlist  = ident , { "," , ident } ;
 
 (* ---------- Document ---------- *)
 document = { topdecl } ;                             (* ⇒ design-system document *)
-topdecl  = versiondecl | metablock | contextgroup | foundations | typedecl | component ;
+topdecl  = versiondecl | metablock | contextgroup | foundations | typedecl | component
+         | groupdecl | example | docs | assets                   (* v0.3 - proposal 0041 *)
+         | globalprop                                            (* proposal 0051 §5 *)
+         | icons                                                 (* v0.6 *)
+         | rule ;                                                (* v0.7 - proposal 0052 *)
+
+(* ---------- Global props (proposal 0051 §5) ---------- *)
+globalprop = "global-prop" , ident , ":" , typeexpr , [ "=" , propdefault ] , [ string ] ;
+                                                     (* ⇒ foundations.globalProps[] *)
+
+(* ---------- Usage rules (proposal 0052 §5) ---------- *)
+(* Decided over the USAGE TREE - instances of the library's components as a consumer composes
+   them. Subjects are components (by the identifier they are declared with) or prelude
+   archetypes, never an element; token rules name token TYPES, never style properties. A
+   reference nothing resolves is a warning and the rule is kept. ⇒ foundations.rules[] *)
+rule      = "rule" , ident , severity , "{" , rulestmt , "because" , string , "}" ;
+severity  = "error" | "warning" ;
+rulestmt  = bound , { bound } , subject , "within" , subject            (* ⇒ kind count, min / max *)
+          | "never" , subject , "within" , subject                      (* ⇒ kind never *)
+          | "only" , subject , "within" , subject , { "," , subject }   (* ⇒ kind only-within *)
+          | "tokens" , identlist                                        (* ⇒ kind tokens-only; foundations type words *)
+          | "prefer" , ident , "for" , "archetype" , identlist ;        (* ⇒ kind prefer *)
+bound     = ( "min" | "max" ) , digit , { digit } ;
+subject   = ( ident | "archetype" , ident ) , [ "where" , predicate ] ; (* predicate: prop leaves only *)
 
 (* ---------- Header & metadata (proposal 0026) ---------- *)
 versiondecl = ( "milda" | "prelude" ) , versionlit ;   (* ⇒ document.milda / document.prelude *)
@@ -58,14 +129,56 @@ metascalar  = string | number | ident ;
 contextgroup = "context-group" , ident , "{" , { ident } , "}" ;   (* ⇒ foundations.contextGroups[] *)
 
 (* ---------- Foundations / tokens ---------- *)
-foundations = "foundations" , "{" , { tokendecl } , "}" ;          (* ⇒ foundations.layers[].tokens[] *)
+foundations = "foundations" , "{" , { tokendecl | layerdecl } , "}" ;   (* ⇒ foundations.layers[].tokens[] *)
+layerdecl   = "layer" , ident , "{" , { tokendecl } , "}" ;        (* ⇒ foundations.layers[] (0006) - declaration order
+                                                                     is layer order; tokens outside every layer land in
+                                                                     a default one *)
 tokendecl   = "token" , path , ":" , ident , "=" , tokenvalue ;    (* path=name, ident=type *)
+                                                                  (* The type words are a closed set, listed where the reader keeps them
+                                                                     (dsl/parse.ts TOKEN_TYPES_BY_NAME) rather than copied here to rot.
+                                                                     One is worth naming: a unitless ratio (a line height) is `ratio`.
+                                                                     `line-height` and the older `number` read as the same type and are
+                                                                     no longer written - a ratio must never be read as a length, which
+                                                                     is what turned a leading of 1.5 into 1.5px (0041 §4). *)
 tokenvalue  = "raw" , valueliteral                                (* ⇒ {kind:"raw", value:<typed>} ; literal desugars to the type's value schema *)
-            | "escape" , string , [ "note" , string ]             (* ⇒ {kind:"escape", raw, note?} — platform leaf hatch, marks node partial *)
-            | "alias" , "by" , ident , "{" , { aliasref } , "}" ;  (* ⇒ {kind:"alias",by,refs} *)
+            | "escape" , string , [ "note" , string ]             (* ⇒ {kind:"escape", raw, note?} - platform leaf hatch, marks node partial *)
+            | "alias" , "by" , ident , "{" , { aliasref } , "}"    (* ⇒ {kind:"alias",by,refs} *)
+            | compute ;                                           (* ⇒ {kind:"compute",base,ops,space?} *)
 valueliteral= string | number | path                              (* shorthand for the typed value selected by the token's `type` *)
             | "{" , { ident , ":" , ( literal | path | valueliteral ) , [ terminator ] } , "}" ;  (* structured typed value *)
-aliasref    = ( ident | "default" ) , arrow , path , [ terminator ] ;
+aliasref    = ( ident | "default" ) , arrow , ( path | valueliteral | compute ) , [ terminator ] ;
+
+(* The two structured records the printer writes, spelled with the general `valueliteral` above
+   - a SEMANTIC vocabulary, not new syntax. Fields are separated by a terminator (the printer
+   uses `;`), and `fallback` is one generic word because the structured literal has no array
+   form. Added 2026-08-06 with the font-family token surface; before it, a family printed as a
+   bare CSS stack (a platform leak that named none of the project's fonts) and a text style
+   printed as `raw ""`, losing its family, size and spacing on every export.
+
+     font-family : { family: string ; fallback: ident ; source: ("system"|"google"|"custom")
+                   ; license: string ; asset: string }        (* license: google · asset: custom *)
+     typography  : { family: ( path | <font-family record> ) ; size: length ; weight: number
+                   ; line-height: number ; letter-spacing: length }
+
+   The reading rule where a field takes either: a STRUCTURE is the value, a bare PATH is a
+   token reference. ⇒ FontFamilyValue / TypographyValue *)
+
+(* A value DERIVED from another token, live (0044): "the accent, 20% lighter", "the body size
+   x 1.25, rounded to 2". Two vocabularies share one form - which one is legal follows the
+   token's declared TYPE, so a colour step on a measurement is an error, not a no-op. An
+   operand written as a literal (or as a nested compute) is hoisted to a synthesized token,
+   exactly as in an alias slot, since the AST's refs hold ids. *)
+compute     = "compute" , operand , [ "in" , computespace ] , "{" , { computestep } , "}" ;
+operand     = path | valueliteral | compute ;
+computespace= "srgb" | "display-p3" | "oklch" | "hsl" | "oklab" | "lab" | "lch" ;  (* wider than a literal's space: the maths space *)
+computestep = colorstep | lengthstep , [ terminator | "," ] ;
+colorstep   = ( "lighten" | "darken" | "saturate" | "desaturate" | "alpha" ) , fraction
+            | "rotate" , number , [ "deg" ]                       (* hue rotation *)
+            | "mix" , operand , fraction ;
+lengthstep  = "scale" , number                                    (* a multiplier *)
+            | ( "offset" | "round" ) , dplength ;                 (* density-independent, e.g. 2px *)
+fraction    = number , "%" | number ;                             (* the surface says 20%, the AST stores 0.2 *)
+dplength    = number , [ "px" | "dp" ] ;
 
 (* ---------- Shared types ---------- *)
 typedecl  = "type" , ident , "=" , typeexpr ;                      (* ⇒ foundations.sharedTypes[] *)
@@ -76,15 +189,21 @@ typeexpr  = "string" | "number" | "boolean"
           | "object" , "{" , { field } , "}"
           | "union" , "(" , typeexpr , { "," , typeexpr } , ")"
           | "component" , [ "(" , identlist , ")" ]
-          | "context" , ident ;        (* v0.1 — prop-bound context group; bare ident resolving to a
+          | "context" , ident ;        (* v0.1 - prop-bound context group; bare ident resolving to a
                                            context-group is the sugar. ⇒ type {kind:"context",group} *)
 field     = ident , [ "?" ] , ":" , typeexpr , [ terminator ] ;
 
 (* ---------- Component (archetype usage) ---------- *)
 component     = "component" , ident , [ string ] , "{" , { cmember } , "}" ;   (* ⇒ components[] *)
 cmember       = archetypedecl | metablock | propsblock | eventsblock | usesstmt | gatestmt | wirestmt
-              | motionstmt | requiresstmt | part | realize ;   (* metablock ⇒ component.meta (0026) *)
-(* v0.2 (proposal 0024) — component-level behaviour composition (the §9 algebra) is
+              | motionstmt | requiresstmt | part | realize
+              | groupstmt ;                                    (* metablock ⇒ component.meta (0026) *)
+(* v0.3 (0041) - the library category this component sits in, by group path. And note that
+   `component` takes an IDENTIFIER: a component whose authored name is free text ("Color
+   picker") carries that name in `meta { name "…" }`, because every reference resolves against
+   the identifier. *)
+groupstmt     = "group" , grouppath ;                             (* ⇒ component.group *)
+(* v0.2 (proposal 0024) - component-level behaviour composition (the §9 algebra) is
    authorable directly, not only inside `realize`. ⇒ component.composition{uses,coordination} *)
 usesstmt      = "uses" , atomname , [ "(" , { ident , [ ":" , ident ] , [ "," ] } , ")" ] ,
                 "as" , ident ;                                    (* ⇒ composition.uses[] *)
@@ -93,39 +212,215 @@ motionstmt    = "motion" , { ? any token except terminator ? } ;  (* decoration 
 requiresstmt  = "requires" , { ident } ;                          (* capability gate; not stored in the AST Component *)
 atomname      = ident , [ "." , ident ] ;                         (* e.g. presentation · selection.single *)
 archetypedecl = "archetype" , ident ;                             (* ⇒ component.archetype *)
-propsblock    = "props" , "{" , { propdecl } , "}" ;              (* ⇒ contract.props[] *)
-propdecl      = ident , typeexpr , [ "=" , propdefault ] , [ "bind" , ident ] , { propannot } , [ terminator ] ;
-propannot     = "@" , ident , ( ident | string | number ) ;       (* v0.2 (0026) — prop metadata: @status deprecated @since 1.2.0 ⇒ prop.meta (props carry no author) *)
-propdefault   = literal | aliasvalue ;                            (* v0.1 — default may be context-aliased *)
+propsblock    = "props" , "{" , { propdecl | globalref | constraint } , "}" ;   (* ⇒ contract.props[] *)
+propdecl      = ident , ":" , typeexpr , [ "=" , propdefault ] , [ requiredclause ] , [ "bind" , ident ] , { propannot } , [ string ] , [ terminator ] ;
+requiredclause= "required" , [ "when" , predicate ] ;           (* v0.7 (0052) ⇒ prop.required / prop.requiredWhen; prop leaves only *)
+constraint    = ( "one-of" | "any-of" | "exclusive" ) , identlist , [ terminator ] ;
+                                                                  (* v0.7 (0052) ⇒ contract.constraints[]; a keyword only when a NAME follows *)
+globalref     = "global" , identlist , [ terminator ] ;           (* 0051 §5 - a reference to a globalprop; a keyword only when a NAME follows *)
+                                                                  (* v0.4 - a name, then its type, is written ONE way: with a colon, as a token declaration and an object field are *)
+propannot     = "@" , ident , ( ident | string | number ) ;       (* v0.2 (0026) - prop metadata: @status deprecated @since 1.2.0 ⇒ prop.meta (props carry no author) *)
+propdefault   = literal | aliasvalue ;                            (* v0.1 - default may be context-aliased *)
 aliasvalue    = "alias" , "by" , ident , "{" , { aliasref } , "}" ;  (* reuses `aliasref`; e.g. responsive `by Breakpoint` *)
 eventsblock   = "events" , "{" , { eventdecl } , "}" ;            (* ⇒ contract.events[] *)
 eventdecl     = ident , [ "from" , machineref ] , [ terminator ] ;
 
 (* ---------- Anatomy part ---------- *)
-part       = "part" , ident , "{" , { pstmt } , "}" ;             (* ⇒ component.anatomy.<part> *)
-pstmt      = layoutblock | stateblock | whenblock | slotstmt | facetstmt ;
-slotstmt   = "slot" , [ arity ] , [ "of" , contentspec ] ,        (* v0.1 — marks the part a consumer-fillable
-             [ "keyed-by" , ident ] , [ terminator ] ;            (* slot. ⇒ part.slot{arity,accepts,keyedBy?} *)
+(* v0.3 (0041) - the part name is a PATH: `root.surface.label` is the child `label` of the
+   child `surface` of `root`. The prefix IS the parent, which is how the node tree is carried;
+   printing one flattened segment per node made every nested node a sibling of its parent. *)
+part       = "part" , partpath , "{" , { pstmt } , "}" ;          (* ⇒ component.anatomy.<part> *)
+partpath   = segment , { "." , segment } ;                        (* the node's address, used by every reference to it *)
+pstmt      = layoutblock | stateblock | whenblock | slotstmt | facetstmt
+           (* v0.3 (0041) - what the part IS, not only how it is painted: *)
+           | kindstmt | originstmt | lockedstmt | presentstmt | contentstmt | a11yblock
+           | emitsblock | bindstmt | valuestmt | repeatstmt | cellstmt | controlstmt
+           | pgroupstmt | presentationstmt | mediastmt | sourcestmt | altstmt
+           | destinationstmt | motionblock | instanceblock | behaviorblock | foreignstmt
+           | actionstmt | configblock ;
+
+(* ---------- v0.3 part statements (proposal 0041) ---------- *)
+kindstmt   = "kind" , ident ;              (* ⇒ node.kind - NEUTRAL (container/text/control/icon/…).
+                                              The platform element is a target decision and is
+                                              deliberately NOT carried: a file that spells out
+                                              div/span/svg is a DOM description. *)
+originstmt = "origin" , ( "root" | "archetype" | "author" ) ;      (* ⇒ node.origin - provenance *)
+lockedstmt = "locked" ;                                            (* ⇒ node.locked *)
+presentstmt= "present" , "when" , predicate ;                      (* ⇒ node.presence (0031/0032) *)
+contentstmt= "content" , ( partvalue                               (* ⇒ node.content *)
+             | "{" , { ( "default" , partvalue | "when" , predicate , arrow , partvalue
+                       | "otherwise" , partvalue ) , [ terminator ] } , "}" ) ;
+(* NOT `text`: that is already a paint facet (`text md` = font size). A keyword whose meaning
+   depends on whether its argument is a string or a word reads fine and parses wrong. *)
+partvalue  = string | number | "true" | "false" | "bind" , ident ; (* fixed, or bound to a prop *)
+a11yblock  = "a11y" , "{" , { ( "name" , partvalue
+             | ( "labelled-by" | "labeled-by" | "described-by" ) , partpath ) , [ terminator ] } , "}" ;
+                                                                   (* ⇒ node.a11y (0013) *)
+emitsblock = "emits" , "{" , { emitdecl } , "}" ;                  (* ⇒ node.emits[] *)
+emitdecl   = ident , [ "on" , ident ] , [ "payload" , partvalue ] ,
+             [ "signal" , ident ] , [ "locked" ] , [ terminator ] ; (* the ident names a DECLARED event *)
+bindstmt   = "bind" , ( "value" , ident                            (* ⇒ node.valueBinding *)
+                      | "state" , ident , ident ) ;                 (* ⇒ node.stateBindings[] *)
+valuestmt  = "value" , typeexpr ;                                  (* ⇒ node.value.type *)
+repeatstmt = "repeat" , ( ident | "static" , "[" , [ literal , { "," , literal } ] , "]" ) ,
+             [ "as" , ident ] ;                                    (* ⇒ node.repeat *)
+cellstmt   = "cell" , [ "header" ] , [ "col" | "row" ] ;           (* ⇒ node.cell *)
+controlstmt= "control" , ( "checkbox" | "switch" ) ;               (* ⇒ node.control (0016) *)
+pgroupstmt = "group" , ( "radio" | "segmented" ) ;                 (* ⇒ node.group (0022) *)
+presentationstmt = "presentation" , ident ;                        (* ⇒ node.presentation, e.g. accessible-name *)
+mediastmt  = "media" , ( "img" | "video" | "audio" | "embed" ) ;    (* ⇒ node.media *)
+sourcestmt = "source" , ( "static" , ident                         (* ⇒ node.mediaSource (0028) *)
+             | [ "bind" ] , ident , [ "sample" , ( "asset" , ident | "url" , string ) ] ) ;
+altstmt    = "alt" , partvalue ;                                   (* ⇒ node.mediaAlt *)
+destinationstmt = "destination" , partvalue ;                      (* ⇒ node.destination *)
+motionblock= "motion" , "{" , { transition } , "}" ;               (* ⇒ node.motion (0017) *)
+transition = "transition" , { ident } , "duration" , value ,       (* leading idents = the animated facets; *)
+             [ "easing" , value ] , [ "delay" , value ] ,          (* duration/easing/delay name TOKENS *)
+             [ terminator ] ;
+instanceblock = "instance" , ident , "{" , { ident , "=" , partvalue , [ terminator ] } , "}" ;
+                                                                   (* ⇒ node.instance (0012) - by component NAME *)
+behaviorblock = ( "behavior" | "behaviour" ) , ident , flatblock ;  (* ⇒ node.behaviors[] - a CLOSED vocabulary
+                                                                      (focus-trap, typeahead, cursor-navigation,
+                                                                      clickaway, overlay-management, scroll-lock,
+                                                                      roving-tabindex, filter); node-valued fields
+                                                                      take a partpath *)
+foreignstmt= "foreign" , ident , [ string ] , string ;             (* ⇒ node.foreign - QUARANTINED: the first
+                                                                      ident is the TARGET whose language the code
+                                                                      is written in (e.g. web-react), then an
+                                                                      optional label, then the code. A reader that
+                                                                      does not implement that target must SKIP the
+                                                                      block rather than interpret it. *)
+actionstmt = "action" , ident , ( "toggle" | "set" ) , ident , [ partvalue ] ;
+                                                                   (* ⇒ node.actions[] - a demo interaction (0021),
+                                                                      only meaningful inside an `example` *)
+configblock= configname , flatblock                                (* ⇒ the per-archetype config surfaces *)
+           | ( "severity" | "accordion" ) , ident ;                (* single-valued ones (0034) *)
+configname = "calendar" | "time-picker" | "tabs" | "slider" | "rating" | "color-picker" | "overlay" ;
+(* A configname is read as a config ONLY when a "{" follows it - which is what keeps
+   `overlay { … }` (this) apart from `overlay <token>` (the paint facet of the same name). *)
+flatblock  = "{" , { ident , [ metavalue , { metavalue } ] , [ terminator ] } , "}" ;
+                                                                   (* a flat record of scalars; a key with no
+                                                                      value is a flag. Every field is VALIDATED
+                                                                      against the block's declared fields on the
+                                                                      way in - a `.milda` is untrusted input. *)
+
+slotstmt   = "slot" , [ arity ] , [ "of" , contentspec ] ,        (* v0.1 - marks the part a consumer-fillable
+             { "keyed-by" , ident | "default" | "as" , ident       (* slot. ⇒ part.slot{arity,accepts,…} *)
+             | "role" , ident | "sample" , slotsample | string } , (* v0.3 (0041): `default` = receives positional
+             [ terminator ] ;                                      (* children; `as` = public name; the trailing
+                                                                      string is authored doc prose *)
+slotsample = string | "example" , ( string | ident )              (* a design-time fill, never generated: a literal,
+             | "[" , [ slotsample , { "," , slotsample } ] , "]" ; (* a demo SCENE by name, or a list of either *)
 arity      = "single" | "optional" | "many" ;                     (* omitted ⇒ single *)
 contentspec= "content" | "ref" , path | ident ;                   (* omitted ⇒ content (free); else typed data / child component *)
-layoutblock= "layout" , [ "when" , condition ] , "{" , { facetstmt } , "}" ;   (* ⇒ part.layout; v0.1 — optional
-                                                                    `when` = conditional (prop-driven) layout, reuses `condition` *)
+layoutblock= "layout" , [ "when" , condition ] , "{" , { layoutstmt | facetstmt } , "}" ;
+                                                                  (* ⇒ part.layout; v0.1 - optional `when` = conditional
+                                                                     (prop-driven) layout, reuses `condition` *)
+(* ---------- v0.8 layout statements (proposal 0056) - the words the spec's §4 model promised ---------- *)
+layoutstmt = "stack" , ( "row" | "column" | "layers" )
+           | "wrap" , ( "nowrap" | "wrap" | "wrap-reverse" )
+           | "align" , ( "start" | "center" | "end" | "stretch" | "baseline" )
+           | "distribute" , ( "start" | "center" | "end" | "between" | "around" | "evenly" )
+           | "gap" , value
+           | "inset" , value , [ value ]
+           | "size" , ( axis , [ axis ] | { ( "width" | "height" ) , axis } )   (* width then height; or named *)
+           | "position" , ( "flow" | "overlay" | ( "pinned" | "bleed" ) , { edge } )  (* no edge ⇒ all *)
+           | "grid" , { "cols" | "rows" | number } ;                (* RESERVED: read and reported, no target *)
+axis       = intent , [ "min" , "(" , value , ")" ] , [ "max" , "(" , value , ")" ] ;
+intent     = "fit" | "fill" | "weight" , "(" , number , ")" | "fixed" , "(" , value , ")"
+           | "ratio" , "(" , number , ":" , number , ")" ;        (* ratio: this axis follows the other *)
+edge       = "block-start" | "block-end" | "inline-start" | "inline-end" | "block" | "inline" | "all" ;
+                                                                  (* LOGICAL edges; `top bottom left right` are read as
+                                                                     the edge each names left-to-right, never written *)
 stateblock = "state" , ident , [ "when" , condition ] , "{" , { facetstmt | layoutblock } , "}" ;
                                                                   (* ⇒ part.states.<state> (no when) OR
-                                                                     part.variants[] {states,when} — proposal 0025 *)
+                                                                     part.variants[] {states,when} - proposal 0025 *)
 whenblock  = "when" , condition , "{" , { facetstmt | layoutblock } , "}" ;
-                                                                  (* ⇒ part.variants[] {when} — state-less prop paint, proposal 0025 *)
+                                                                  (* ⇒ part.variants[] {when} - state-less prop paint, proposal 0025 *)
 facetstmt  = facetname , value , { value } , [ terminator ] ;    (* ⇒ facets/layout entry *)
-facetname  = ident , [ "." , ident ] ;                           (* v0.1 — facet + optional sub-key:
+facetname  = ident , [ "." , ident ] ;                           (* v0.1 - facet + optional sub-key:
                                                                     text.clamp, text.wrap, border.inline-start *)
 value      = path | propref | string | number | ident ;          (* path ⇒ {token}; else raw/intent *)
+
+(* ---------- v0.3 the library around the components (proposal 0041) ---------- *)
+(* Four document fields the format did not carry. All four are AUTHORED content, which is the
+   whole argument for carrying them: a system whose docs and demo scenes vanish on export is
+   not the system the author has. *)
+
+groupdecl  = "group" , grouppath , [ string ] ;                    (* ⇒ componentGroups[] - nestable BY PATH,
+                                                                      the trailing string is author prose the
+                                                                      docs transclude. Ancestors are implied. *)
+grouppath  = segment , { "/" , segment } ;
+
+example    = "example" , ( string | ident ) , [ "for" , ident ] , [ string ] ,
+             "{" , { demoblock | part } , "}" ;                    (* ⇒ examples[] (0021) - a contract-less scene;
+                                                                      `for` names the component it demonstrates *)
+demoblock  = "demo" , "{" , { ident , ":" , typeexpr , [ "=" , literal ] , [ terminator ] } , "}" ;   (* v0.4 - the colon, as in a propdecl *)
+                                                                   (* ⇒ example.state - the scene's own variables *)
+
+docs       = "docs" , "{" , { docssite | docsfooter | docpage } , "}" ;   (* ⇒ docs (0018) *)
+docssite   = "site" , flatblock ;                                  (* name / tagline / version / search-placeholder *)
+docsfooter = "footer" , "{" , { ( "copyright" , string
+             | "link" , string , string ) , [ terminator ] } , "}" ;
+docpage    = "page" , string , [ "in" , string ] , [ "under" , string ] ,   (* `in` = sidebar section,
+             "{" , { docblock } , "}" ;                                     (* `under` = parent page TITLE *)
+docblock   = prosekind , string , [ "anchor" , ( string | ident ) ]
+           | "divider"
+           | "image" , [ "asset" ] , ( string | ident )
+           | "component" , ident
+           | ( "component-props" | "component-events" | "component-composition" ) , ident
+           | "component-prop" , ident , ident
+           | "component-event" , ident , ident
+           | "example" , string
+           | "component-group" , grouppath
+           | ( "tokens" | "swatch" ) , ident ;                     (* every transclusion addresses its target
+                                                                      by NAME, so it resolves in the file *)
+prosekind  = "heading" | "subheading" | "paragraph" | "list" | "quote" | "callout" | "code" ;
+
+assets     = "assets" , "{" , { assetfolder | assetdecl } , "}" ;  (* ⇒ assets *)
+assetfolder= "folder" , grouppath ;                                (* nesting by path, ancestors implied *)
+assetdecl  = assetkind , string , [ "in" , grouppath ] , flatblock ;
+assetkind  = "font" | "image" | "svg" | "video" | "animation" ;
+(* An asset's flatblock carries `mime`, `size`, `uploaded`, `tags` and the per-kind metadata,
+   plus WHERE THE BYTES ARE - and that is the one place the format offers a choice (0041 §1.2):
+     url  "https://…"     the bytes travel beside the file (a bundle: `.milda` + assets/)
+     data "data:image/…"  the bytes are IN the file (self-contained, needs nothing else)
+   Both are the same grammar, so neither is a second dialect. *)
+
+icons      = "icons" , "{" , { iconset | iconglyph | iconcustom } , "}" ;  (* ⇒ foundations.icons *)
+iconset    = "set" , iconname , [ string ] , [ flatblock ] ;   (* provider · license · samples [4 names] *)
+iconglyph  = "glyph" , iconname , iconname , [ flatblock ] ;   (* prefix, name · label · svg *)
+iconcustom = "custom" , ( string | ident ) , [ flatblock ] ;   (* asset <asset name> · label *)
+iconname   = ident | string ;              (* a provider may name a glyph `123`: then it is quoted *)
+(* No statement carries an id. A part names a glyph by NAME, which resolves to a curated glyph
+   by its name or label, else to the FIRST set's prefix - so the sets are kept in file order. A
+   custom glyph names its asset by NAME, like every asset reference (FORMAT.md §3). A `glyph`'s
+   `svg` is its vendored body (proposal 0019), printed last for the same reason as an asset's
+   `data`. A reader derives ids: a set by its prefix, a glyph `<prefix>-<name>`, a custom glyph
+   its kebab-cased name. *)
 
 (* ---------- Realization ---------- *)
 realize   = "realize" , ident , [ "when" , condition ] , "{" , { rstmt } , "}" ;  (* ⇒ component.realize[] *)
 condition = ident , "=" , ( ident | string | number ) ;          (* ⇒ realize.when *)
-rstmt     = rblock | dropstmt | wirestmt | facetstmt ;
-rblock    = ident , [ ident ] , "{" , { facetstmt } , "}" ;      (* presentation popover { ... } *)
+(* v0.2 (0032) - the rich predicate behind `when` / `present when`: AND/OR/NOT, comparison
+   operators, and prop · state · context · ancestor leaves. An `ancestor` leaf names the node by
+   its part PATH (v0.3), never by an id. *)
+predicate = pterm , { ( "and" | "or" ) , pterm } ;
+pterm     = [ "not" ] , ( "(" , predicate , ")" | pleaf ) ;
+pleaf     = pleafref , [ ( "=" | "!=" | "<" | "<=" | ">" | ">=" | "contains" ) , ( ident | string | number ) ] ;
+pleafref  = path | "state" , ident | "context" , ident | "ancestor" , partpath , ident ;
+rstmt     = presentstmt_r | browsestmt | commitstmt | dropstmt | notestmt | dismissstmt
+          | backdropstmt | wirestmt ;
+presentstmt_r = "presentation" , [ ident ] , [ "{" , { ident , [ ident ] , [ terminator ] } , "}" ] ;
+                                                                  (* ⇒ realize.presentation - surface, then place /
+                                                                     flip / matchWidth *)
+browsestmt  = "browse" , [ ident ] , [ "{" , { ? any token ? } , "}" ] ;   (* ⇒ realize.browse - the block is kept minimally *)
+commitstmt  = "commit" , ( "explicit" | "continuous" ) , [ "on" , { ident } ] ,
+              [ "{" , { ( "live" | "settled" ) , ident , [ terminator ] } , "}" ] ;   (* ⇒ realize.commit *)
 dropstmt  = "drop" , identlist ;                                  (* ⇒ realize.drop[] *)
+notestmt    = "note" , ( string | ident ) ;                       (* ⇒ realize.note *)
+dismissstmt = "dismiss" , ( "none" | ident , { ident } ) ;        (* ⇒ realize.dismiss - `none` = non-dismissable *)
+backdropstmt= "backdrop" , ident ;                                (* ⇒ realize.backdrop: scrim | blur | none *)
 wirestmt  = "wire" , wireend , [ "when" , condition ] , arrow , wireend ;   (* ⇒ realize.wire[] / composition *)
 wireend   = machineref , [ "(" , [ argref ] , ")" ] | ident ;
 argref    = machineref | propref | ident ;

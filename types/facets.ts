@@ -1,4 +1,11 @@
 import type { Id } from './ast'
+import type {
+  LayoutAlign,
+  LayoutDirection,
+  LayoutDistribute,
+  LayoutWrap,
+  LogicalEdge,
+} from '../dsl/vocabulary'
 
 export type FacetName =
   | 'fill'
@@ -28,9 +35,7 @@ export type FacetName =
   | 'backdrop'
 
 export type InsetValue =
-  | { block?: Id; inline?: Id }
-  | { top?: Id; right?: Id; bottom?: Id; left?: Id }
-  | { all: Id }
+  { block?: Id; inline?: Id } | { top?: Id; right?: Id; bottom?: Id; left?: Id } | { all: Id }
 
 export type BorderFacetStyle = 'solid' | 'dashed' | 'dotted'
 
@@ -51,14 +56,12 @@ export type FacetValue =
 
 export type FacetMap = Partial<Record<FacetName, FacetValue>>
 
-export type StackAxis = 'row' | 'column' | 'layers'
+// The layout words are the vocabulary's (proposal 0056): one list, read by the parser, the
+// lowering, the printer and the targets, so the AST cannot accept a word the IR cannot hold.
+export type StackAxis = LayoutDirection
 
 export type AxisIntent =
-  | 'fit'
-  | 'fill'
-  | { weight: number }
-  | { fixed: Id }
-  | { ratio: { w: number; h: number } }
+  'fit' | 'fill' | { weight: number } | { fixed: Id } | { ratio: { w: number; h: number } }
 
 export interface AxisSize {
   intent: AxisIntent
@@ -68,15 +71,19 @@ export interface AxisSize {
 
 export type AxisSizeValue = AxisIntent | AxisSize
 
-export type Distribute = 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'
-export type Align = 'start' | 'center' | 'end' | 'stretch' | 'baseline'
+export type Distribute = LayoutDistribute
+export type Align = LayoutAlign
 
-export type Position = 'flow' | 'overlay' | { pinned: 'top' | 'bottom' | 'left' | 'right' | 'all' }
+/** `pinned` and `bleed` name LOGICAL edges (PRELUDE §4, proposal 0003 §2a). */
+export type Position = 'flow' | 'overlay' | { pinned: LogicalEdge[] } | { bleed: LogicalEdge[] }
 
 export interface LayoutSpec {
   stack?: StackAxis
-  grid?: { cols: number; rows: number }
+  /** Reserved: read and reported, with no target yet (0056 §3.3). */
+  grid?: { cols: number; rows?: number }
+  /** The `flow` key, an alias of `wrap wrap` (0003 §2b). Read, never written. */
   flow?: boolean
+  wrap?: LayoutWrap
 
   gap?: Id
   inset?: InsetValue

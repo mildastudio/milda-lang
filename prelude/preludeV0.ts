@@ -184,7 +184,7 @@ const atoms: Atom[] = [
         note: 'release trap; restore prior focus',
       },
     ],
-    note: 'no visual states (exposes none) — a behaviour guarantee, not a paint surface; realized as a focus trap on web, OS-owned on native sheets',
+    note: 'no visual states (exposes none) - a behaviour guarantee, not a paint surface; realized as a focus trap on web, OS-owned on native sheets',
   },
 
   {
@@ -329,7 +329,7 @@ const atoms: Atom[] = [
   {
     kind: 'atom',
     name: 'validation',
-    doc: 'valid/invalid against rules (PURE — does not listen to input)',
+    doc: 'valid/invalid against rules (PURE - does not listen to input)',
     params: [{ name: 'value' }, { name: 'rules' }],
     context: [{ name: 'errors', type: 'list', init: '[]' }],
     states: [{ id: 'pristine', initial: true }, { id: 'valid' }, { id: 'invalid' }],
@@ -579,7 +579,7 @@ const composites: CompositeBehavior[] = [
     kind: 'composite',
     name: 'pressability',
     builtFrom: ['gesture'],
-    note: 'press/hover/active feedback (ripple, highlight); contributes pressed/hovered feedback states ONLY — does not fire the action (that is activation)',
+    note: 'press/hover/active feedback (ripple, highlight); contributes pressed/hovered feedback states ONLY - does not fire the action (that is activation)',
   },
 ]
 
@@ -972,7 +972,8 @@ const archetypes: ArchetypeDef[] = [
     // Behavior is the shared framework-agnostic time core (proposal 0029,
     // targets/behavior/timepicker.ts); node.timePicker picks the slot step + 12/24h.
     // Web realization = a listbox of time slots; iOS wheel is a per-platform view.
-    realizationNote: 'web time-slot listbox (step via node.timePicker) · iOS wheel · Android dialog',
+    realizationNote:
+      'web time-slot listbox (step via node.timePicker) · iOS wheel · Android dialog',
   },
   {
     kind: 'archetype',
@@ -1546,7 +1547,7 @@ const facets: FacetDef[] = [
   { name: 'gap', covers: 'spacing between children' },
   {
     name: 'text',
-    covers: 'typography role (body|caption|title…) — bundles size/weight/line/tracking',
+    covers: 'typography role (body|caption|title…) - bundles size/weight/line/tracking',
     divergence: 'iOS Dynamic Type = OS-resolved role',
   },
   {
@@ -1620,7 +1621,7 @@ const capabilities: CapabilityDef[] = [
   {
     name: 'input.voice',
     status: 'aspirational',
-    note: 'aspirational — declared but consumed by no atom yet (no voice/turn-taking machine in v0); see NOTES-modality-coverage',
+    note: 'aspirational - declared but consumed by no atom yet (no voice/turn-taking machine in v0); see NOTES-modality-coverage',
   },
   { name: 'motion.haptic' },
   { name: 'runtime.dynamic-color', note: 'Material You' },
@@ -1639,20 +1640,20 @@ const decorations: TaxonomyNote[] = [
   },
   {
     name: 'masking',
-    note: 'format/constrain entry (date/phone/currency) — decorates value-entry draft',
+    note: 'format/constrain entry (date/phone/currency) - decorates value-entry draft',
   },
 
   {
     name: 'anchoring',
-    note: 'position a surface relative to a reference (placement/flip/offset/match-size) — decorates presentation(popover|menu)',
+    note: 'position a surface relative to a reference (placement/flip/offset/match-size) - decorates presentation(popover|menu)',
   },
   {
     name: 'backdrop',
-    note: 'scrim / blur behind a layer — decorates a modal presentation; painted via the `backdrop` facet on the backdrop anatomy part',
+    note: 'scrim / blur behind a layer - decorates a modal presentation; painted via the `backdrop` facet on the backdrop anatomy part',
   },
   {
     name: 'momentum-scroll',
-    note: 'inertial scroll with snap / detent — decorates scroll/browse on touch surfaces',
+    note: 'inertial scroll with snap / detent - decorates scroll/browse on touch surfaces',
   },
 ]
 
@@ -1660,7 +1661,7 @@ const nonBehaviors: TaxonomyNote[] = [
   { name: 'filter', note: 'derived view over a collection (data, not interaction)' },
   { name: 'virtualization', note: 'render windowing' },
   { name: 'ordering', note: 'collection mutation (reorder/sort)' },
-  { name: 'aggregation', note: 'data transformation (grouping/totals) — DataGrid math' },
+  { name: 'aggregation', note: 'data transformation (grouping/totals) - DataGrid math' },
 ]
 
 export const preludeV0: PreludeDocument = {

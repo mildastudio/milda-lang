@@ -6,20 +6,63 @@
 
   "foundations": {
     "contextGroups": [
-      { "id": "cg.variant", "name": "Variant",
-        "contexts": [ {"id":"ctx.solid","name":"Solid"}, {"id":"ctx.soft","name":"Soft"} ] },
-      { "id": "cg.breakpoint", "name": "Breakpoint",
-        "contexts": [ {"id":"ctx.initial","name":"initial"}, {"id":"ctx.md","name":"md"} ] }
+      {
+        "id": "cg.variant",
+        "name": "Variant",
+        "contexts": [
+          { "id": "ctx.solid", "name": "Solid" },
+          { "id": "ctx.soft", "name": "Soft" }
+        ]
+      },
+      {
+        "id": "cg.breakpoint",
+        "name": "Breakpoint",
+        "contexts": [
+          { "id": "ctx.initial", "name": "initial" },
+          { "id": "ctx.md", "name": "md" }
+        ]
+      }
     ],
     "layers": [
-      { "id": "layer.base", "name": "Base", "order": 0, "tokens": [
-        { "id":"tok.accent9", "name":"accent/9", "type":"color",
-          "value":{"kind":"raw","value":{"space":"srgb","channels":[0.24,0.39,0.87]}} },
-        { "id":"tok.s1", "name":"space/1", "type":"spacing", "value":{"kind":"raw","value":{"value":0.25,"unit":"scaled"}} },
-        { "id":"tok.s3", "name":"space/3", "type":"spacing", "value":{"kind":"raw","value":{"value":0.75,"unit":"scaled"}} },
-        { "id":"tok.variant_fill", "name":"variant/fill", "type":"color",
-          "value":{"kind":"alias","by":"cg.variant","refs":{"ctx.solid":"tok.accent9","ctx.soft":"tok.accent9","default":"tok.accent9"}} }
-      ] }
+      {
+        "id": "layer.base",
+        "name": "Base",
+        "order": 0,
+        "tokens": [
+          {
+            "id": "tok.accent9",
+            "name": "accent/9",
+            "type": "color",
+            "value": { "kind": "raw", "value": { "space": "srgb", "channels": [0.24, 0.39, 0.87] } }
+          },
+          {
+            "id": "tok.s1",
+            "name": "space/1",
+            "type": "spacing",
+            "value": { "kind": "raw", "value": { "value": 0.25, "unit": "scaled" } }
+          },
+          {
+            "id": "tok.s3",
+            "name": "space/3",
+            "type": "spacing",
+            "value": { "kind": "raw", "value": { "value": 0.75, "unit": "scaled" } }
+          },
+          {
+            "id": "tok.variant_fill",
+            "name": "variant/fill",
+            "type": "color",
+            "value": {
+              "kind": "alias",
+              "by": "cg.variant",
+              "refs": {
+                "ctx.solid": "tok.accent9",
+                "ctx.soft": "tok.accent9",
+                "default": "tok.accent9"
+              }
+            }
+          }
+        ]
+      }
     ],
     "sharedTypes": [],
     "metadata": []
@@ -37,53 +80,83 @@
       "contract": {
         "params": {},
         "props": [
-          { "id":"p.variant", "name":"variant", "type":{"kind":"context","group":"cg.variant"}, "default":"Solid" },
-          { "id":"p.size", "name":"size", "type":{"kind":"context","group":"cg.breakpoint"},
-            "default":{"kind":"alias","by":"cg.breakpoint","refs":{"ctx.initial":"tok.s1","ctx.md":"tok.s3","default":"tok.s1"}} },
-          { "id":"p.value", "name":"value", "type":{"kind":"string"}, "binding":"selected" }
+          {
+            "id": "p.variant",
+            "name": "variant",
+            "type": { "kind": "context", "group": "cg.variant" },
+            "default": "Solid"
+          },
+          {
+            "id": "p.size",
+            "name": "size",
+            "type": { "kind": "context", "group": "cg.breakpoint" },
+            "default": {
+              "kind": "alias",
+              "by": "cg.breakpoint",
+              "refs": { "ctx.initial": "tok.s1", "ctx.md": "tok.s3", "default": "tok.s1" }
+            }
+          },
+          { "id": "p.value", "name": "value", "type": { "kind": "string" }, "binding": "selected" }
         ],
-        "events": [ { "name":"change", "from":"S.change" } ]
+        "events": [{ "name": "change", "from": "S.change" }]
       },
 
       "contextBindings": [
-        { "group":"cg.variant", "prop":"p.variant" },
-        { "group":"cg.breakpoint", "prop":"p.size" }
+        { "group": "cg.variant", "prop": "p.variant" },
+        { "group": "cg.breakpoint", "prop": "p.size" }
       ],
 
       "composition": {
-        "uses": [ { "machine":"selection.single", "as":"S" }, { "machine":"activation", "as":"A" } ],
-        "wire": [ { "from":"A.invoke", "to":"P.toggle" } ]
+        "uses": [
+          { "machine": "selection.single", "as": "S" },
+          { "machine": "activation", "as": "A" }
+        ],
+        "wire": [{ "from": "A.invoke", "to": "P.toggle" }]
       },
 
       "anatomy": {
         "trigger": {
-          "slot": { "arity":"single", "accepts":{"kind":"content"} },
+          "slot": { "arity": "single", "accepts": { "kind": "content" } },
           "facets": {
-            "fill": { "token":"tok.variant_fill" },
-            "border.inline-start": { "token":"tok.accent9" },
+            "fill": { "token": "tok.variant_fill" },
+            "border.inline-start": { "token": "tok.accent9" },
             "slant": "italic"
           }
         },
         "panel": {
-          "slot": { "arity":"many", "accepts":{"kind":"content"}, "keyedBy":"value" },
+          "slot": { "arity": "many", "accepts": { "kind": "content" }, "keyedBy": "value" },
           "layout": [
-            { "stack":"column", "gap":"tok.s1", "size":{"width":"fill","height":"fit"} },
-            { "when":{"prop":"orientation","eq":"horizontal"}, "grid":{"cols":2}, "gap":"tok.s1" }
+            { "stack": "column", "gap": "tok.s1", "size": { "width": "fill", "height": "fit" } },
+            {
+              "when": { "prop": "orientation", "eq": "horizontal" },
+              "grid": { "cols": 2 },
+              "gap": "tok.s1"
+            }
           ]
         },
         "media": {
-          "layout": { "size":{"width":"fill","height":"fit"}, "position":{"position":"bleed","edges":["all"]} }
+          "layout": {
+            "size": { "width": "fill", "height": "fit" },
+            "position": { "position": "bleed", "edges": ["all"] }
+          }
         },
         "item": {
-          "slot": { "arity":"many", "accepts":{"kind":"component","ref":"DemoItem"} }
+          "slot": { "arity": "many", "accepts": { "kind": "component", "ref": "DemoItem" } }
         }
       },
 
       "realize": [
-        { "target":"web", "when":null, "commit":{"mode":"explicit","on":["click","enter"]} },
-        { "target":"ios", "when":{"prop":"style","eq":"wheel"},
-          "drop":["activation"],
-          "wire":[ {"from":"B.active-changed","to":"S.select","arg":"B.active"} ] }
+        {
+          "target": "web",
+          "when": null,
+          "commit": { "mode": "explicit", "on": ["click", "enter"] }
+        },
+        {
+          "target": "ios",
+          "when": { "prop": "style", "eq": "wheel" },
+          "drop": ["activation"],
+          "wire": [{ "from": "B.active-changed", "to": "S.select", "arg": "B.active" }]
+        }
       ]
     }
   ]

@@ -23,10 +23,14 @@ export type {
   DimensionValue,
   ColorOrRef,
   DimensionOrRef,
+  LengthKeyword,
+  LengthKeywordValue,
+  LengthValue,
   ShadowLayer,
   ShadowValue,
   FontCategory,
   FontFamilyValue,
+  FontProvenance,
   FontWeightValue,
   TypographyValue,
   DurationValue,
@@ -42,6 +46,9 @@ export type {
   RawTokenValue,
   AliasTokenValue,
   EscapeTokenValue,
+  ComputeTokenValue,
+  ComputeOp,
+  ComputeSpace,
   TokenValue,
   Token,
   Layer,
@@ -69,10 +76,35 @@ export type {
   Capability,
 } from './types/facets'
 
-export type { Foundations, ProjectMetadataEntry } from './types/foundations'
+export type {
+  Foundations,
+  GlobalProp,
+  ProjectMetadataEntry,
+  // Usage rules (proposal 0052 §5).
+  RuleSubject,
+  UsageRule,
+} from './types/foundations'
+
+// The library around the components (proposal 0041): organisation, demo scenes, the docs
+// overlay and the asset library - the last document fields the format did not carry.
+export type {
+  DocBlockDecl,
+  DocPageDecl,
+  DocsSiteDecl,
+  DocsFooterLinkDecl,
+  DocsFooterDecl,
+  DocsDecl,
+  AssetFolderDecl,
+  AssetDecl,
+  AssetsDecl,
+  IconSetDecl,
+  IconDecl,
+  IconsDecl,
+} from './types/library'
 
 export type {
   PropDef,
+  PropConstraint,
   EventDef,
   Contract,
   PartState,
@@ -81,6 +113,24 @@ export type {
   PartSlot,
   PartSlotArity,
   PartSlotAccepts,
+  PartSlotSample,
+  // What a part IS, not only how it is painted (proposal 0041).
+  PartValue,
+  PartContent,
+  PartContentRule,
+  PartA11y,
+  PartEmit,
+  PartStateBinding,
+  PartRepeat,
+  PartRepeatSource,
+  PartMotionTransition,
+  PartInstance,
+  PartForeign,
+  PartCell,
+  PartMediaSample,
+  PartMediaSource,
+  PartBehavior,
+  PartConfigs,
   Anatomy,
   Predicate,
   PredicateRef,
@@ -93,6 +143,10 @@ export type {
   Realization,
   Composition,
   Component,
+  ComponentGroupDecl,
+  DemoVariable,
+  Example,
+  PartAction,
 } from './types/components'
 
 export type {
@@ -142,8 +196,6 @@ export { preludeV0, atomsByName, archetypesByName, compositesByName } from './pr
 
 export type { ResolvedToken } from './engine/resolveToken'
 export { resolveToken, findToken, allTokensOfType } from './engine/resolveToken'
-export type { ResolveFacetsInput } from './engine/resolveFacets'
-export { resolveFacets, resolveLayout, collectActiveStates } from './engine/resolveFacets'
 export type { ValidationIssue } from './engine/validate'
 export { validate } from './engine/validate'
 export type {
@@ -155,6 +207,88 @@ export type {
 export { conformance } from './engine/conformance'
 
 export { parseMildaDocument } from './dsl/parse'
+// Surface vocabulary the parser accepts, position by position - read by editor tooling
+// (LSP completion) so suggestions can't drift from the grammar.
+export {
+  COLOR_TOKEN_TYPE_NAMES,
+  FACET_NAMES,
+  LAYOUT_KEYS,
+  LAYOUT_VALUES,
+  LENGTH_TOKEN_TYPE_NAMES,
+  PART_KEYWORDS,
+  SLOT_ARITIES,
+  TOKEN_TYPE_NAMES,
+  TOKEN_TYPES_BY_NAME,
+  TOKEN_VALUE_KINDS,
+  tokenTypeFamily,
+} from './dsl/parse'
+// The closed word sets the surface fixes (proposal 0041): one list for the reader, the
+// AST→IR lowering and the editor, because two of them drifting is a defect.
+export {
+  ASSET_BASE_KEYS,
+  ASSET_FIELD_KEYS,
+  ASSET_FIELDS,
+  ASSET_KINDS,
+  BEHAVIOR_FIELDS,
+  BEHAVIOR_KINDS,
+  CELL_MODIFIERS,
+  COLOR_LITERAL_ALIASES,
+  COLOR_KEYWORDS,
+  COLOR_LITERAL_FNS,
+  COLOR_LITERAL_SPELLINGS,
+  CONTROL_REALIZATIONS,
+  DEMO_ACTION_OPS,
+  DOCS_FOOTER_KEYWORDS,
+  DOCS_KEYWORDS,
+  DOCS_SITE_KEYS,
+  DOC_BLOCK_KEYWORDS,
+  DOC_PROSE_KINDS,
+  MILDA_SURFACE_VERSION,
+  PRELUDE_VERSION,
+  DOC_TRANSCLUSIONS,
+  EXAMPLE_KEYWORDS,
+  GROUP_REALIZATIONS,
+  INTERACTION_KINDS,
+  LENGTH_LITERAL_FNS,
+  // The layout model's words (proposal 0056): core re-exports them as its neutral vocabulary.
+  AXIS_CLAMPS,
+  AXIS_INTENTS,
+  LAYOUT_ALIGNS,
+  LAYOUT_DIRECTIONS,
+  LAYOUT_DISTRIBUTES,
+  LAYOUT_RECORD_KEYS,
+  LAYOUT_WRAPS,
+  LOGICAL_EDGES,
+  PHYSICAL_EDGE_ALIASES,
+  POSITION_KINDS,
+  MEDIA_TYPES,
+  NODE_KINDS,
+  NODE_ORIGINS,
+  PART_CONFIGS,
+  PART_CONFIG_NAMES,
+  PART_CONFIG_WORDS,
+  PRESENTATION_KINDS,
+  SLOT_MODIFIERS,
+  SLOT_ROLES,
+  VALUE_LITERAL_FNS,
+  camelField,
+  kebabField,
+} from './dsl/vocabulary'
+export type {
+  AxisIntentKind,
+  ConfigFieldSpec,
+  ConfigSurface,
+  FieldType,
+  LayoutAlign,
+  LayoutDirection,
+  LayoutDistribute,
+  LayoutRecordKey,
+  LayoutWrap,
+  LiteralChannel,
+  LiteralFnSpec,
+  LogicalEdge,
+  PositionKind,
+} from './dsl/vocabulary'
 export type {
   ParseResult,
   ParseIssue,
@@ -166,4 +300,4 @@ export type {
   SourcePosition,
 } from './dsl/parse'
 export { lex, LexError } from './dsl/lexer'
-export type { Token as DslToken } from './dsl/lexer'
+export type { Token as DslToken, SkippedChar } from './dsl/lexer'

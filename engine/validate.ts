@@ -3,6 +3,7 @@ import type { PreludeDocument } from '../types/prelude'
 import type { Component, Part } from '../types/components'
 import type { FacetMap, LayoutSpec } from '../types/facets'
 import { findToken } from './resolveToken'
+import { couldBeLiteral } from '../dsl/literal'
 
 export interface ValidationIssue {
   severity: 'error' | 'warning'
@@ -13,6 +14,17 @@ export interface ValidationIssue {
   // Lets tooling place the diagnostic on a source span (see NodeSpan) even though
   // `where` is a human-readable string. Part/state issues carry the component id.
   id?: string
+}
+
+// The parser mints `tok.<word>` for EVERY word in a layout position or an inset/border facet,
+// literal or not (`gap 0px`, `border transparent Hairline`), and leaves the question to the
+// reader. Reading order is proposal 0049's: a token first, and a literal only once no token
+// claims the word - so a token named `600` still wins, and a misspelt `acent-3` is still missing.
+const TOKEN_ID_PREFIX = 'tok.'
+function isDangling(id: string, layers: Project['foundations']['layers']): boolean {
+  if (findToken(id, layers)) return false
+  const word = id.startsWith(TOKEN_ID_PREFIX) ? id.slice(TOKEN_ID_PREFIX.length) : id
+  return !couldBeLiteral(word)
 }
 
 function facetTokenRefs(facets: FacetMap | undefined): string[] {
@@ -54,7 +66,8 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
   const archetypeNames = new Set(prelude.archetypes.map((a) => a.name))
   const facetNames = new Set<string>(prelude.facets.map((f) => f.name))
   const stateNames = new Set<string>(prelude.states.map((s) => s.name))
-  const groupIds = new Set(doc.foundations.contextGroups.map((g) => g.id))
+  const groupsById = new Map(doc.foundations.contextGroups.map((g) => [g.id, g]))
+  const groupIds = new Set(groupsById.keys())
   const layers = doc.foundations.layers
 
   for (const layer of layers) {
@@ -63,7 +76,7 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
         const where = `token ${tok.name} (${tok.id})`
         // An empty `by` is a default-only alias (the lowering of an unconditional
         // ref, e.g. `token x : color = accent.9`), not a reference to a context
-        // group — so there's no group to be "unknown".
+        // group - so there's no group to be "unknown".
         if (tok.value.by !== '' && !groupIds.has(tok.value.by)) {
           issues.push({
             severity: 'error',
@@ -73,12 +86,53 @@ export function validate(doc: Project, prelude: PreludeDocument): ValidationIssu
             id: tok.id,
           })
         }
+        // Every context of the group needs a value, or a `default` has to stand in for
+        // the ones without one. A context left uncovered has no value in that context -
+        // the theme is short an entry, and only the group knows which ones are missing.
+        // (A wholly empty block is the parser's `alias-empty`, so this never doubles it.)
+        const refs = tok.value.refs
+        const group = groupsById.get(tok.value.by)
+        if (group && Object.keys(refs).length > 0 && !('default' in refs)) {
+          const missing = group.contexts.filter((c) => !(c.id in refs))
+          if (missing.length > 0) {
+            issues.push({
+              severity: 'error',
+              code: 'alias.missingContexts',
+              message: `alias by ${group.name} has no value for ${missing.map((c) => c.name).join(', ')} (add ${missing.length === 1 ? 'it' : 'them'}, or a default)`,
+              where,
+              id: tok.id,
+            })
+          }
+        }
         for (const refId of Object.values(tok.value.refs)) {
           if (!findToken(refId, layers)) {
             issues.push({
               severity: 'error',
               code: 'alias.danglingRef',
               message: `alias ref points at missing token "${refId}"`,
+              where,
+              id: tok.id,
+            })
+          }
+        }
+      }
+      // A computed value points at tokens too (its base, and any `mix` operand), and a
+      // dangling one is the same defect as a dangling alias ref: the value cannot be
+      // evaluated at all (proposal 0044).
+      if (tok.value.kind === 'compute') {
+        const where = `token ${tok.name} (${tok.id})`
+        const targets = [
+          { id: tok.value.base, what: 'base' },
+          ...tok.value.ops.flatMap((op) =>
+            op.op === 'mix' ? [{ id: op.with, what: 'mix operand' }] : [],
+          ),
+        ]
+        for (const target of targets) {
+          if (!findToken(target.id, layers)) {
+            issues.push({
+              severity: 'error',
+              code: 'compute.danglingRef',
+              message: `compute ${target.what} points at missing token "${target.id}"`,
               where,
               id: tok.id,
             })
@@ -152,7 +206,7 @@ function checkPart(
       }
     }
     for (const id of facetTokenRefs(facets)) {
-      if (!findToken(id, layers)) {
+      if (isDangling(id, layers)) {
         issues.push({
           severity: 'error',
           code: 'facet.danglingToken',
@@ -165,7 +219,7 @@ function checkPart(
   }
   const checkLayoutRefs = (layout: LayoutSpec | undefined, scope: string) => {
     for (const id of layoutTokenRefs(layout)) {
-      if (!findToken(id, layers)) {
+      if (isDangling(id, layers)) {
         issues.push({
           severity: 'error',
           code: 'layout.danglingToken',
@@ -235,7 +289,7 @@ export function validatePrelude(prelude: PreludeDocument): ValidationIssue[] {
         issues.push({
           severity: 'error',
           code: 'prelude.unknownMode',
-          message: `"${name}(${mode})" — "${mode}" is not a declared mode of ${name} [${atom.modes.join('|')}]`,
+          message: `"${name}(${mode})" - "${mode}" is not a declared mode of ${name} [${atom.modes.join('|')}]`,
           where,
         })
       }
@@ -250,7 +304,7 @@ export function validatePrelude(prelude: PreludeDocument): ValidationIssue[] {
         issues.push({
           severity: 'error',
           code: 'prelude.danglingComposeRef',
-          message: `uses atom "${u.atom}" — not a declared atom`,
+          message: `uses atom "${u.atom}" - not a declared atom`,
           where: `archetype ${arch.name}`,
         })
       }
@@ -264,7 +318,7 @@ export function validatePrelude(prelude: PreludeDocument): ValidationIssue[] {
         issues.push({
           severity: 'error',
           code: 'prelude.danglingComposeRef',
-          message: `uses atom "${u.atom}" — not a declared atom`,
+          message: `uses atom "${u.atom}" - not a declared atom`,
           where: `composite ${comp.name}`,
         })
       }

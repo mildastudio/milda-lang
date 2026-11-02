@@ -111,13 +111,7 @@ export interface CompositeBehavior {
 }
 
 export type ArchetypeGroup =
-  | 'Actions'
-  | 'Inputs'
-  | 'Disclosure'
-  | 'Navigation'
-  | 'Collections'
-  | 'Feedback'
-  | 'Media'
+  'Actions' | 'Inputs' | 'Disclosure' | 'Navigation' | 'Collections' | 'Feedback' | 'Media'
 
 export interface ContentCategory {
   level: 'phrase' | 'region'

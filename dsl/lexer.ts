@@ -1,17 +1,17 @@
 // ─── Milda DSL lexer ──────────────────────────────────────────────────────────
 // Tokenizes the concrete surface syntax (../spec/GRAMMAR.ebnf) for the hand-written
 // recursive-descent parser (./parse.ts). Zero-dependency; the executable PEG /
-// tree-sitter tracks the spec mentions are deferred — this covers the authoring
+// tree-sitter tracks the spec mentions are deferred - this covers the authoring
 // surface with precise source positions for diagnostics.
 //
 // Design notes on the tricky bits:
-//   • `#` starts a line comment. Hex colors never appear bare — they are STRING
-//     literals ("#ffffff") — so `#` outside a string is always a comment.
+//   • `#` starts a line comment. Hex colors never appear bare - they are STRING
+//     literals ("#ffffff") - so `#` outside a string is always a comment.
 //   • `->` (and the unicode `→`) is the alias/wire arrow; it must be recognized
 //     before a leading `-` is folded into a WORD.
 //   • Newlines are significant: a statement ends at a NEWLINE or `;` (grammar
 //     `terminator`). Consecutive newlines collapse to one NEWLINE token.
-//   • A WORD is a run of identifier/path characters ([A-Za-z0-9_./-]) — the parser
+//   • A WORD is a run of identifier/path characters ([A-Za-z0-9_./-]) - the parser
 //     later classifies it as a keyword, path, number, or bare ident by context.
 
 export type TokenType =
@@ -76,7 +76,17 @@ const PUNCT: Record<string, TokenType> = {
   '@': 'at',
 }
 
-export function lex(src: string): Token[] {
+/** A character the lexer had to skip: not a token, not whitespace, not a comment. Collected
+ *  rather than thrown, so a half-typed document still lexes - but REPORTED, because silently
+ *  dropping a character means a typo changes the value and the author never learns. `hex(őfff)`
+ *  used to lex as `hex(fff)`: white, no issue, no clue (proposal 0041). */
+export interface SkippedChar {
+  char: string
+  line: number
+  col: number
+}
+
+export function lex(src: string, skipped?: SkippedChar[]): Token[] {
   const tokens: Token[] = []
   let i = 0
   let line = 1
@@ -95,7 +105,13 @@ export function lex(src: string): Token[] {
     }
   }
 
-  const push = (type: TokenType, value: string, startPos: number, startLine: number, startCol: number) => {
+  const push = (
+    type: TokenType,
+    value: string,
+    startPos: number,
+    startLine: number,
+    startCol: number,
+  ) => {
     tokens.push({ type, value, pos: startPos, line: startLine, col: startCol })
   }
 
@@ -162,7 +178,7 @@ export function lex(src: string): Token[] {
     // Multi-char comparison operators (predicate leaves, proposal 0032). Lexed before
     // the single-char punctuation so `<=`/`>=`/`!=` don't split into two tokens (and so
     // a lone `!` isn't silently dropped). `<`/`>` alone still lex as `lt`/`gt` (used by
-    // `array<…>` types), so type parsing is unaffected — `<=` only appears in predicates.
+    // `array<…>` types), so type parsing is unaffected - `<=` only appears in predicates.
     if (c === '!' && src[i + 1] === '=') {
       advance(2)
       push('ne', '!=', startPos, startLine, startCol)
@@ -199,7 +215,8 @@ export function lex(src: string): Token[] {
     }
 
     // Unexpected character (e.g. `+`/`*` inside a motion expression the parser skips):
-    // don't abort the whole file — skip it. Only unterminated strings hard-fail.
+    // don't abort the whole file - skip it, and RECORD it. Only unterminated strings hard-fail.
+    skipped?.push({ char: c, line: startLine, col: startCol })
     advance()
   }
 

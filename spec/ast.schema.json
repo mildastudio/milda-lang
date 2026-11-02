@@ -1,22 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://milda.dev/schema/ast/0.1.0",
-  "title": "Milda DSL — canonical AST (design-system document), v0.1",
-  "description": "Normative JSON Schema for the Milda canonical AST defined in PRELUDE.md §10, including the v0.1 additions from proposals 0001–0004 (prop-bound context groups, facet-vocabulary closure, layout-structure closure, first-class slots). This schema covers the `design-system` document kind; the `prelude` document (state-machine catalog, §10 'Prelude AST') is a separate, deferred schema. Structural shapes are validated strictly; typed token-value payloads (raw values) are intentionally permissive — per-type value schemas are provided in $defs as tooling reference and are a documented future tightening.",
+  "title": "Milda DSL - canonical AST (design-system document), v0.1",
+  "description": "Normative JSON Schema for the Milda canonical AST defined in PRELUDE.md §10, including the v0.1 additions from proposals 0001–0004 (prop-bound context groups, facet-vocabulary closure, layout-structure closure, first-class slots). This schema covers the `design-system` document kind; the `prelude` document (state-machine catalog, §10 'Prelude AST') is a separate, deferred schema. Structural shapes are validated strictly; typed token-value payloads (raw values) are intentionally permissive - per-type value schemas are provided in $defs as tooling reference and are a documented future tightening.",
 
   "type": "object",
   "required": ["milda", "kind", "prelude", "foundations", "components"],
   "additionalProperties": false,
   "properties": {
-    "milda":   { "$ref": "#/$defs/semver", "description": "language version targeted" },
-    "kind":    { "const": "design-system" },
+    "milda": { "$ref": "#/$defs/semver", "description": "language version targeted" },
+    "kind": { "const": "design-system" },
     "prelude": { "$ref": "#/$defs/semver", "description": "stdlib/prelude version targeted" },
     "meta": {
       "type": "object",
       "required": ["id", "name"],
       "properties": {
-        "id":      { "$ref": "#/$defs/id" },
-        "name":    { "type": "string" },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
         "version": { "type": "string" }
       },
       "additionalProperties": true
@@ -26,9 +26,44 @@
       "type": "object",
       "properties": {
         "folders": { "type": "object" },
-        "assets":  { "type": "object" }
+        "assets": { "type": "object" }
       },
       "additionalProperties": true
+    },
+    "icons": {
+      "type": "object",
+      "required": ["sets", "icons"],
+      "properties": {
+        "sets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["prefix", "name"],
+            "properties": {
+              "prefix": { "type": "string" },
+              "name": { "type": "string" },
+              "provider": { "type": "string" },
+              "license": { "type": "string" },
+              "samples": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "icons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "name"],
+            "properties": {
+              "kind": { "enum": ["set", "custom"] },
+              "prefix": { "type": "string" },
+              "name": { "type": "string" },
+              "label": { "type": "string" },
+              "svg": { "type": "string" },
+              "asset": { "type": "string" }
+            }
+          }
+        }
+      }
     },
     "components": {
       "type": "array",
@@ -37,9 +72,8 @@
   },
 
   "$defs": {
-
     "semver": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$" },
-    "id":     { "type": "string", "minLength": 1 },
+    "id": { "type": "string", "minLength": 1 },
     "tokenRef": { "type": "string", "minLength": 1, "description": "a token id" },
 
     "foundations": {
@@ -48,9 +82,9 @@
       "additionalProperties": true,
       "properties": {
         "contextGroups": { "type": "array", "items": { "$ref": "#/$defs/contextGroup" } },
-        "layers":        { "type": "array", "items": { "$ref": "#/$defs/layer" } },
-        "sharedTypes":   { "type": "array", "items": { "$ref": "#/$defs/sharedType" } },
-        "metadata":      { "type": "array" }
+        "layers": { "type": "array", "items": { "$ref": "#/$defs/layer" } },
+        "sharedTypes": { "type": "array", "items": { "$ref": "#/$defs/sharedType" } },
+        "metadata": { "type": "array" }
       }
     },
 
@@ -59,7 +93,7 @@
       "required": ["id", "name", "contexts"],
       "additionalProperties": false,
       "properties": {
-        "id":   { "$ref": "#/$defs/id" },
+        "id": { "$ref": "#/$defs/id" },
         "name": { "type": "string" },
         "contexts": {
           "type": "array",
@@ -68,7 +102,7 @@
             "required": ["id", "name"],
             "additionalProperties": false,
             "properties": {
-              "id":   { "$ref": "#/$defs/id" },
+              "id": { "$ref": "#/$defs/id" },
               "name": { "type": "string" }
             }
           }
@@ -81,10 +115,10 @@
       "required": ["id", "name", "tokens"],
       "additionalProperties": true,
       "properties": {
-        "id":    { "$ref": "#/$defs/id" },
-        "name":  { "type": "string" },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
         "order": { "type": "integer" },
-        "tokens":{ "type": "array", "items": { "$ref": "#/$defs/token" } }
+        "tokens": { "type": "array", "items": { "$ref": "#/$defs/token" } }
       }
     },
 
@@ -93,9 +127,12 @@
       "required": ["id", "name", "type", "value"],
       "additionalProperties": false,
       "properties": {
-        "id":    { "$ref": "#/$defs/id" },
-        "name":  { "type": "string" },
-        "type":  { "type": "string", "description": "value-schema selector: color | spacing | radius | dimension | shadow | tonal | elevation | typography | font-family | font-weight | ring | backdrop | …" },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "type": {
+          "type": "string",
+          "description": "value-schema selector: color | spacing | radius | dimension | shadow | tonal | elevation | typography | font-family | font-weight | ring | backdrop | …"
+        },
         "value": { "$ref": "#/$defs/valueNode" }
       }
     },
@@ -108,8 +145,10 @@
           "required": ["kind", "value"],
           "additionalProperties": false,
           "properties": {
-            "kind":  { "const": "raw" },
-            "value": { "description": "typed payload selected by the owning token's `type`; permissive (see $defs typed-value references)." }
+            "kind": { "const": "raw" },
+            "value": {
+              "description": "typed payload selected by the owning token's `type`; permissive (see $defs typed-value references)."
+            }
           }
         },
         {
@@ -118,7 +157,10 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "alias" },
-            "by":   { "$ref": "#/$defs/id", "description": "context-group id this aliases over (may be prop-bound, 0001)" },
+            "by": {
+              "$ref": "#/$defs/id",
+              "description": "context-group id this aliases over (may be prop-bound, 0001)"
+            },
             "refs": {
               "type": "object",
               "description": "context-id → token-id (refs may be cross-type for facet-tokens); a `default` key is required",
@@ -133,8 +175,94 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "escape" },
-            "raw":  { "type": "string" },
+            "raw": { "type": "string" },
             "note": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "description": "0044 - a value DERIVED from another token, live. Two op vocabularies share this shape; which one is legal follows the owning token's `type` (a colour is lightened and mixed, a measurement is scaled and rounded).",
+          "required": ["kind", "base", "ops"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "compute" },
+            "base": {
+              "$ref": "#/$defs/tokenRef",
+              "description": "what is being modified; a literal operand is hoisted to a synthesized token, as in an alias slot"
+            },
+            "ops": {
+              "type": "array",
+              "description": "applied in order, so `darken` then `alpha` is well defined",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": ["op", "amount"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": { "enum": ["lighten", "darken", "saturate", "desaturate", "alpha"] },
+                      "amount": {
+                        "type": "number",
+                        "description": "0..1 fraction; the surface writes it as a percentage"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["op", "degrees"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": { "const": "rotate" },
+                      "degrees": { "type": "number" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["op", "with", "amount"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": { "const": "mix" },
+                      "with": { "$ref": "#/$defs/tokenRef" },
+                      "amount": { "type": "number" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["op", "factor"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": { "const": "scale" },
+                      "factor": { "type": "number" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["op", "delta"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": { "const": "offset" },
+                      "delta": { "type": "number", "description": "density-independent pixels" }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["op", "to"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": { "const": "round" },
+                      "to": {
+                        "type": "number",
+                        "description": "grid, in density-independent pixels"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "space": {
+              "enum": ["srgb", "display-p3", "oklch", "hsl", "oklab", "lab", "lch"],
+              "description": "colour only; the space the maths happens in - wider than a literal's space"
+            }
           }
         }
       ]
@@ -145,7 +273,7 @@
       "required": ["id", "name", "definition"],
       "additionalProperties": false,
       "properties": {
-        "id":   { "$ref": "#/$defs/id" },
+        "id": { "$ref": "#/$defs/id" },
         "name": { "type": "string" },
         "definition": { "$ref": "#/$defs/typeNode" }
       }
@@ -167,7 +295,10 @@
         },
         {
           "if": { "properties": { "kind": { "const": "enum" } }, "required": ["kind"] },
-          "then": { "required": ["values"], "properties": { "values": { "type": "array", "items": { "type": "string" } } } }
+          "then": {
+            "required": ["values"],
+            "properties": { "values": { "type": "array", "items": { "type": "string" } } }
+          }
         },
         {
           "if": { "properties": { "kind": { "const": "object" } }, "required": ["kind"] },
@@ -180,9 +311,9 @@
                   "type": "object",
                   "required": ["name", "type"],
                   "properties": {
-                    "id":       { "$ref": "#/$defs/id" },
-                    "name":     { "type": "string" },
-                    "type":     { "$ref": "#/$defs/typeNode" },
+                    "id": { "$ref": "#/$defs/id" },
+                    "name": { "type": "string" },
+                    "type": { "$ref": "#/$defs/typeNode" },
                     "required": { "type": "boolean" }
                   },
                   "additionalProperties": false
@@ -193,7 +324,12 @@
         },
         {
           "if": { "properties": { "kind": { "const": "union" } }, "required": ["kind"] },
-          "then": { "required": ["options"], "properties": { "options": { "type": "array", "items": { "$ref": "#/$defs/typeNode" } } } }
+          "then": {
+            "required": ["options"],
+            "properties": {
+              "options": { "type": "array", "items": { "$ref": "#/$defs/typeNode" } }
+            }
+          }
         },
         {
           "if": { "properties": { "kind": { "const": "context" } }, "required": ["kind"] },
@@ -207,11 +343,14 @@
       "required": ["id", "name"],
       "additionalProperties": false,
       "properties": {
-        "id":          { "$ref": "#/$defs/id" },
-        "name":        { "type": "string" },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
         "description": { "type": "string" },
-        "archetype":   { "type": "string", "description": "prelude archetype name; absent for pure layout/typography presets" },
-        "contract":    { "$ref": "#/$defs/contract" },
+        "archetype": {
+          "type": "string",
+          "description": "prelude archetype name; absent for pure layout/typography presets"
+        },
+        "contract": { "$ref": "#/$defs/contract" },
         "anatomy": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/part" }
@@ -219,14 +358,14 @@
         "composition": { "$ref": "#/$defs/composition" },
         "contextBindings": {
           "type": "array",
-          "description": "v0.1 (0001) — derivable: which context groups are supplied by which props",
+          "description": "v0.1 (0001) - derivable: which context groups are supplied by which props",
           "items": {
             "type": "object",
             "required": ["group", "prop"],
             "additionalProperties": false,
             "properties": {
               "group": { "$ref": "#/$defs/id" },
-              "prop":  { "$ref": "#/$defs/id" }
+              "prop": { "$ref": "#/$defs/id" }
             }
           }
         },
@@ -242,12 +381,22 @@
           "type": "object",
           "additionalProperties": {
             "oneOf": [
-              { "type": "object", "required": ["prop"],   "additionalProperties": false, "properties": { "prop":   { "$ref": "#/$defs/id" } } },
-              { "type": "object", "required": ["static"], "additionalProperties": false, "properties": { "static": {} } }
+              {
+                "type": "object",
+                "required": ["prop"],
+                "additionalProperties": false,
+                "properties": { "prop": { "$ref": "#/$defs/id" } }
+              },
+              {
+                "type": "object",
+                "required": ["static"],
+                "additionalProperties": false,
+                "properties": { "static": {} }
+              }
             ]
           }
         },
-        "props":  { "type": "array", "items": { "$ref": "#/$defs/prop" } },
+        "props": { "type": "array", "items": { "$ref": "#/$defs/prop" } },
         "events": { "type": "array", "items": { "$ref": "#/$defs/event" } }
       }
     },
@@ -257,15 +406,20 @@
       "required": ["id", "name", "type"],
       "additionalProperties": false,
       "properties": {
-        "id":       { "$ref": "#/$defs/id" },
-        "name":     { "type": "string" },
-        "type":     { "$ref": "#/$defs/typeNode" },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/typeNode" },
         "required": { "type": "boolean" },
-        "binding":  { "type": "string", "description": "archetype machine binding name (e.g. 'selected')" },
+        "binding": {
+          "type": "string",
+          "description": "archetype machine binding name (e.g. 'selected')"
+        },
         "default": {
-          "description": "v0.1 (0001) — a bare literal OR a value-node (raw/alias, e.g. responsive `by Breakpoint`)",
+          "description": "v0.1 (0001) - a bare literal OR a value-node (raw/alias, e.g. responsive `by Breakpoint`)",
           "anyOf": [
-            { "type": "string" }, { "type": "number" }, { "type": "boolean" },
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
             { "$ref": "#/$defs/valueNode" }
           ]
         }
@@ -286,7 +440,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "slot":   { "$ref": "#/$defs/slot" },
+        "slot": { "$ref": "#/$defs/slot" },
         "layout": { "$ref": "#/$defs/layout" },
         "facets": { "$ref": "#/$defs/facetMap" },
         "states": {
@@ -301,33 +455,42 @@
     },
 
     "slot": {
-      "description": "v0.1 (0004) — a consumer-fillable insertion point.",
+      "description": "v0.1 (0004) - a consumer-fillable insertion point.",
       "type": "object",
       "required": ["arity", "accepts"],
       "additionalProperties": false,
       "properties": {
-        "arity":  { "enum": ["single", "optional", "many"] },
+        "arity": { "enum": ["single", "optional", "many"] },
         "accepts": {
           "type": "object",
           "required": ["kind"],
           "additionalProperties": false,
           "properties": {
             "kind": { "enum": ["content", "type", "component"] },
-            "ref":  { "type": "string", "description": "required for kind type (a type id) / component (a component name)" }
+            "ref": {
+              "type": "string",
+              "description": "required for kind type (a type id) / component (a component name)"
+            }
           },
           "allOf": [
             {
-              "if": { "properties": { "kind": { "enum": ["type", "component"] } }, "required": ["kind"] },
+              "if": {
+                "properties": { "kind": { "enum": ["type", "component"] } },
+                "required": ["kind"]
+              },
               "then": { "required": ["ref"] }
             }
           ]
         },
-        "keyedBy": { "type": "string", "description": "many-only: the field that pairs/identifies children (compound)" }
+        "keyedBy": {
+          "type": "string",
+          "description": "many-only: the field that pairs/identifies children (compound)"
+        }
       }
     },
 
     "layout": {
-      "description": "v0.1 (0003) — a single block, or an ARRAY of blocks each optionally `when`-conditioned (default = the when-less block).",
+      "description": "v0.1 (0003) - a single block, or an ARRAY of blocks each optionally `when`-conditioned (default = the when-less block).",
       "anyOf": [
         { "$ref": "#/$defs/layoutBlock" },
         { "type": "array", "items": { "$ref": "#/$defs/layoutBlock" } }
@@ -344,42 +507,65 @@
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "width":  { "type": ["string", "object"] },
+            "width": { "type": ["string", "object"] },
             "height": { "type": ["string", "object"] }
           }
         },
         "position": {
-          "description": "flow | overlay | pinned | bleed (0003 bleed carries logical edges)",
+          "description": "flow | overlay | { pinned: edges } | { bleed: edges } - logical edges (0003, 0056)",
           "anyOf": [
-            { "type": "string" },
+            { "enum": ["flow", "overlay"] },
             {
               "type": "object",
-              "required": ["position"],
               "properties": {
-                "position": { "enum": ["flow", "overlay", "pinned", "bleed"] },
-                "edges":    { "type": "array", "items": { "type": "string" } }
+                "pinned": { "type": "array", "items": { "type": "string" } },
+                "bleed": { "type": "array", "items": { "type": "string" } }
               },
+              "minProperties": 1,
+              "maxProperties": 1,
               "additionalProperties": false
             }
           ]
         },
-        "wrap": { "enum": ["nowrap", "wrap", "wrap-reverse"], "description": "v0.1 (0003) container facet; stack+wrap = flow" }
+        "wrap": {
+          "enum": ["nowrap", "wrap", "wrap-reverse"],
+          "description": "v0.1 (0003) container facet; stack+wrap = flow"
+        }
       }
     },
 
     "facetMap": {
       "type": "object",
       "description": "facet-name → facet value. Keys may be dotted (v0.1 0002: text.clamp, border.inline-start).",
-      "propertyNames": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]*(\\.[A-Za-z_][A-Za-z0-9_-]*)?$" },
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_-]*(\\.[A-Za-z_][A-Za-z0-9_-]*)?$"
+      },
       "additionalProperties": { "$ref": "#/$defs/facetValue" }
     },
 
     "facetValue": {
       "anyOf": [
-        { "type": "object", "required": ["token"], "properties": { "token": { "$ref": "#/$defs/tokenRef" } }, "additionalProperties": false },
-        { "type": "object", "required": ["raw"],   "properties": { "raw": {} }, "additionalProperties": false },
-        { "type": "string", "description": "an enum keyword facet value, e.g. slant 'italic', text.wrap 'wrap'" },
-        { "type": "object", "description": "a structured facet value, e.g. inset {block,inline} or border.<edge> {color,width,style}" }
+        {
+          "type": "object",
+          "required": ["token"],
+          "properties": { "token": { "$ref": "#/$defs/tokenRef" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["raw"],
+          "properties": { "raw": {} },
+          "additionalProperties": false
+        },
+        {
+          "type": "string",
+          "description": "an enum keyword facet value, e.g. slant 'italic', text.wrap 'wrap'"
+        },
+        {
+          "type": "object",
+          "description": "a structured facet value, e.g. inset {block,inline} or border.<edge> {color,width,style}"
+        }
       ]
     },
 
@@ -388,10 +574,10 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "uses":  { "type": "array" },
-        "wire":  { "type": "array" },
-        "gate":  { "type": "array" },
-        "motion":{ "type": "array" }
+        "uses": { "type": "array" },
+        "wire": { "type": "array" },
+        "gate": { "type": "array" },
+        "motion": { "type": "array" }
       }
     },
 
@@ -402,7 +588,7 @@
       "additionalProperties": false,
       "properties": {
         "prop": { "type": "string" },
-        "eq":   { "type": ["string", "number", "boolean"] }
+        "eq": { "type": ["string", "number", "boolean"] }
       }
     },
 
@@ -412,12 +598,12 @@
       "additionalProperties": true,
       "properties": {
         "target": { "type": "string" },
-        "when":   { "anyOf": [ { "type": "null" }, { "$ref": "#/$defs/whenCond" } ] },
+        "when": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/whenCond" }] },
         "presentation": { "type": "object" },
-        "browse":       { "type": "object" },
-        "commit":       { "type": "object" },
-        "surface":      { "type": ["object", "string"] },
-        "drop":         { "type": "array", "items": { "type": "string" } },
+        "browse": { "type": "object" },
+        "commit": { "type": "object" },
+        "surface": { "type": ["object", "string"] },
+        "drop": { "type": "array", "items": { "type": "string" } },
         "wire": {
           "type": "array",
           "items": {
@@ -426,8 +612,8 @@
             "additionalProperties": false,
             "properties": {
               "from": { "type": "string" },
-              "to":   { "type": "string" },
-              "arg":  { "type": "string" },
+              "to": { "type": "string" },
+              "arg": { "type": "string" },
               "when": { "$ref": "#/$defs/whenCond" }
             }
           }
