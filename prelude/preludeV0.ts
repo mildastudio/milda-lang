@@ -8,6 +8,8 @@ import type {
   StateDef,
   TaxonomyNote,
 } from '../types/prelude'
+import type { StateName } from '../types/facets'
+import { STATE_NAMES } from '../dsl/vocabulary'
 
 const atoms: Atom[] = [
   {
@@ -1586,31 +1588,38 @@ const facets: FacetDef[] = [
   { name: 'backdrop', covers: 'scrim / blur behind layer', divergence: 'iOS material/vibrancy' },
 ]
 
-const states: StateDef[] = [
-  { name: 'pressed', from: 'pressability' },
-  { name: 'hovered', from: 'pressability' },
-  { name: 'focused', from: 'value-entry' },
-  { name: 'active', from: 'browse' },
-  { name: 'selected', from: 'selection' },
-  { name: 'checked', from: 'toggle' },
-  { name: 'expanded', from: 'disclosure' },
-  { name: 'open', from: 'presentation' },
-  { name: 'disabled', from: 'ambient (global gate)' },
-  { name: 'readonly', from: 'ambient' },
-  { name: 'loading', from: 'async-state' },
-  { name: 'error', from: 'async-state' },
-  { name: 'success', from: 'async-state' },
-  { name: 'invalid', from: 'validation' },
-  { name: 'valid', from: 'validation' },
-  { name: 'indeterminate', from: 'toggle (tristate)' },
-  { name: 'dragging', from: 'gesture' },
-  { name: 'empty', from: 'value-entry' },
-  { name: 'complete', from: 'progress / stepping-nav' },
-  { name: 'first', from: 'collection-position' },
-  { name: 'last', from: 'collection-position' },
-  { name: 'odd', from: 'collection-position' },
-  { name: 'even', from: 'collection-position' },
-]
+// Which behaviour emits each UI state. Total over the vocabulary's `STATE_NAMES`, so a word added
+// there is a compile error here until it says where it comes from, and the taxonomy cannot list a
+// word the reader does not accept (see the vocabulary's own note for what left this list, and why).
+const STATE_SOURCES: Record<StateName, string> = {
+  hovered: 'pressability',
+  pressed: 'pressability',
+  focused: 'value-entry',
+  'focus-visible': 'value-entry (keyboard focus)',
+  active: 'browse',
+  selected: 'selection',
+  checked: 'toggle',
+  indeterminate: 'toggle (tristate)',
+  expanded: 'disclosure',
+  open: 'presentation',
+  disabled: 'ambient (global gate)',
+  readonly: 'ambient',
+  loading: 'async-state',
+  error: 'async-state',
+  success: 'async-state',
+  first: 'collection-position',
+  last: 'collection-position',
+  odd: 'collection-position',
+  even: 'collection-position',
+  today: 'the calendar core (DatePicker day)',
+  'outside-month': 'the calendar core (DatePicker day)',
+  'range-start': 'the calendar core (range mode)',
+  'range-end': 'the calendar core (range mode)',
+  'in-range': 'the calendar core (range mode)',
+  highlighted: 'browse (the calendar cursor)',
+}
+
+const states: StateDef[] = STATE_NAMES.map((name) => ({ name, from: STATE_SOURCES[name] }))
 
 const capabilities: CapabilityDef[] = [
   { name: 'input.keyboard' },

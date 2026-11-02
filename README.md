@@ -68,7 +68,7 @@ repo (`@mildastudio/core`, `@mildastudio/contract`, `@mildastudio/generate`,
 ## Status
 
 `0.x` - the language and AST are still evolving; treat the shape as unstable until `1.0`. The
-surface syntax is versioned separately (`milda 0.7` in a file's header) and every change to it is
+surface syntax is versioned separately (the `milda` line of a file's header) and every change to it is
 recorded in [`spec/FORMAT.md`](spec/FORMAT.md) §6. The documentation, including a tour and a
 keyword-by-keyword reference held to this parser by tests, is at [milda.dev](https://milda.dev).
 

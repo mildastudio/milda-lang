@@ -411,13 +411,23 @@ facet _values_ that vary by a prop use a propref / `alias by Breakpoint` (§3) i
 
 ## 5. States (emitted by behaviors)
 
-The full state vocabulary, each contributed by a primitive (§1). No CSS pseudo-classes.
+The full state vocabulary, each contributed by a primitive (§1). No CSS pseudo-classes. It is one
+closed list, `STATE_NAMES` in `dsl/vocabulary.ts`: the reader warns (`state-unknown`) on any other
+word after `state`, `bind state`, `when state` or `when ancestor <part>`, and the IR's `StateName`
+is the same list, so every word here is one every target realizes.
 
-`pressed` `hovered` `focused` `active`(highlighted) `selected` `checked`
+`pressed` `hovered` `focused` `focus-visible` `active` `selected` `checked` `indeterminate`
 `expanded` `open` `disabled` `readonly` `loading` `error` `success`
-`invalid` `valid` `indeterminate` `dragging` `empty` `complete`
 
 - collection-position pseudo-states: `first` `last` `odd` `even`
+- calendar cell states (proposal 0029), on the DatePicker `day` and TimePicker `option` parts:
+  `today` `outside-month` `range-start` `range-end` `in-range` `highlighted`
+
+`invalid`, `valid`, `dragging`, `empty` and `complete` were listed here once. They are states of
+behaviour machines (`validation`, `dnd`, `value-entry`, `progress`), not stylable UI states: no
+target realizes them, and a `state invalid { … }` rule reached the CSS emitter with no selector
+and came out unconditional. One that should be stylable joins the list together with its
+realization in every target (proposal 0050 §1).
 
 ---
 
@@ -869,7 +879,7 @@ production annotated with the AST node it desugars to). EBNF is the normative fo
 executable PEG (Peggy/pest) and a tree-sitter grammar are implementation tracks for later.
 The same `examples/select.json` in surface syntax:
 
-```
+```milda
 context-group ColorScheme { Light Dark }
 context-group Platform   { Web iOS Android }
 

@@ -99,30 +99,8 @@ export interface LayoutSpec {
   position?: Position
 }
 
-export type StateName =
-  | 'pressed'
-  | 'hovered'
-  | 'focused'
-  | 'active'
-  | 'selected'
-  | 'checked'
-  | 'expanded'
-  | 'open'
-  | 'disabled'
-  | 'readonly'
-  | 'loading'
-  | 'error'
-  | 'success'
-  | 'invalid'
-  | 'valid'
-  | 'indeterminate'
-  | 'dragging'
-  | 'empty'
-  | 'complete'
-  | 'first'
-  | 'last'
-  | 'odd'
-  | 'even'
+// The closed list lives with the other surface vocabularies.
+export type { StateName } from '../dsl/vocabulary'
 
 export type Capability =
   | 'input.keyboard'

@@ -501,6 +501,53 @@ export const LAYOUT_RECORD_KEYS = [
 ] as const
 export type LayoutRecordKey = (typeof LAYOUT_RECORD_KEYS)[number]
 
+// ─── UI states (PRELUDE §5) ───────────────────────────────────────────────────
+// The words a `state <name> { }` block, a `bind state <name>`, a `when state <name>` and a
+// `when ancestor <part> <name>` may use. The IR's `StateName` IS this list (core imports it), so
+// a word here is one every target is told how to realize - the web tier's `STATE_SELECTOR` is a
+// `Record<StateName, string>`, total by construction - and a word missing from it is one no
+// target can draw.
+//
+// It used to exist twice, disagreeing both ways: the prelude's taxonomy also had `invalid`,
+// `valid`, `dragging`, `empty` and `complete`, and the IR had `focus-visible` and the calendar
+// states. The prelude-only five were never UI states. They are states of behaviour MACHINES
+// (`validation` goes pristine -> valid | invalid, `drag` idle -> dragging), which no target
+// exposes as a stylable condition: before this list was closed, `state invalid { ring … }` reached
+// the CSS emitter with no selector for it and came out as an unconditional rule - the ring always
+// on. A state of that kind that should be stylable joins this list together with its realization
+// in every target, which is proposal 0050's rule: a `StateName` that compiles on both sides and is
+// realized by neither is the failure, not the cure.
+export const STATE_NAMES = [
+  'hovered',
+  'pressed',
+  'focused',
+  'focus-visible',
+  'active',
+  'selected',
+  'checked',
+  'indeterminate',
+  'expanded',
+  'open',
+  'disabled',
+  'readonly',
+  'loading',
+  'error',
+  'success',
+  'first',
+  'last',
+  'odd',
+  'even',
+  // Calendar/time cell states (proposal 0029) - data-driven by the behaviour core, stylable on
+  // the DatePicker `day` / TimePicker `option` parts.
+  'today',
+  'outside-month',
+  'range-start',
+  'range-end',
+  'in-range',
+  'highlighted',
+] as const
+export type StateName = (typeof STATE_NAMES)[number]
+
 // ─── Examples (0021) ──────────────────────────────────────────────────────────
 
 export const EXAMPLE_KEYWORDS: readonly string[] = ['demo', 'part']

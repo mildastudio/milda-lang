@@ -1,6 +1,6 @@
 {
   "name": "@mildastudio/milda",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "license": "MIT",
   "description": "The Milda language - a platform-neutral design language and canonical AST for design systems.",
   "repository": {

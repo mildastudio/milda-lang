@@ -75,7 +75,7 @@ families in a library and a `font-family` token names one by id - and an id is e
 this section forbids, so the file writes the family record instead and the reader rebuilds the
 library from it:
 
-```
+```milda foundations
 token type/heading : font-family = raw { family: "Inter"; fallback: sans-serif; source: google; license: "OFL-1.1" }
 token type/ui      : font-family = raw { family: "system-ui, -apple-system, sans-serif"; fallback: sans-serif; source: system }
 ```
@@ -91,7 +91,7 @@ A **text style** is the same shape one level up, and its `family` may be either:
 record, or the **path of a `font-family` token** - which is how a text style stays tied to a
 family that can be layered and can differ per context.
 
-```
+```milda foundations
 token text/body : typography = raw { family: type.ui; size: 15px; weight: 400; line-height: 1.5; letter-spacing: 0px }
 ```
 
@@ -101,7 +101,7 @@ value and a bare path is the token.**
 The same quantity also exists as a token of its own, and its type word says what it is rather
 than what shape it has: a line height is a **`ratio`** - a number with no unit, never a length.
 
-```
+```milda foundations
 token text/leading/normal : ratio = 1.5
 ```
 

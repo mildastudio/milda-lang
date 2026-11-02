@@ -278,6 +278,7 @@ export {
   PRESENTATION_KINDS,
   SLOT_MODIFIERS,
   SLOT_ROLES,
+  STATE_NAMES,
   VALUE_LITERAL_FNS,
   camelField,
   kebabField,

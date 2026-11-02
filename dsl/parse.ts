@@ -115,11 +115,13 @@ import {
   LOGICAL_EDGES,
   MILDA_SURFACE_VERSION,
   LENGTH_LITERAL_FNS,
+  NODE_KINDS,
   PHYSICAL_EDGE_ALIASES,
   POSITION_KINDS,
   PRELUDE_VERSION,
   PART_CONFIG_NAMES,
   PART_CONFIG_WORDS,
+  STATE_NAMES,
   type LayoutWrap,
   type LogicalEdge,
 } from './vocabulary'
@@ -928,6 +930,27 @@ class Parser {
     if (this.at('word')) return this.next().value
     this.issue('error', code, `expected identifier, got ${this.peek().type}`)
     return ''
+  }
+
+  // A UI-state word: `state X`, `bind state X`, `when state X`, `when ancestor P X`. The word is
+  // kept whatever it is - lossless first, and an unknown state matches nothing - but the reader
+  // says so, because `state hover` is the CSS habit this most often catches and nothing downstream
+  // would ever complain: the rule simply never applies. The message names the list rather than
+  // refusing, and the one near miss a CSS writer makes (the bare verb) gets its spelling.
+  private expectStateWord(code: string): string {
+    const tok = this.peek()
+    const word = this.expectWord(code)
+    if (!word || (STATE_NAMES as readonly string[]).includes(word)) return word
+    const near = [`${word}ed`, `${word}d`].find((w) =>
+      (STATE_NAMES as readonly string[]).includes(w),
+    )
+    this.issue(
+      'warning',
+      'state-unknown',
+      `unknown state ${JSON.stringify(word)}${near ? ` - did you mean '${near}'?` : ''} - a state is one of: ${STATE_NAMES.join(', ')}`,
+      tok,
+    )
+    return word
   }
 
   // Skip a balanced `{ … }` block (already positioned at or before the `{`).
@@ -1848,7 +1871,7 @@ class Parser {
   private parsePredRef(): PredicateRef {
     if (this.atWord('state')) {
       this.next()
-      return { kind: 'state', state: this.expectWord('pred-state') }
+      return { kind: 'state', state: this.expectStateWord('pred-state') }
     }
     if (this.atWord('context')) {
       this.next()
@@ -1857,7 +1880,7 @@ class Parser {
     if (this.atWord('ancestor')) {
       this.next()
       const nodeId = this.expectWord('pred-ancestor-id')
-      const state = this.expectWord('pred-ancestor-state')
+      const state = this.expectStateWord('pred-ancestor-state')
       return { kind: 'ancestor', nodeId, state }
     }
     return { kind: 'prop', path: this.expectWord('pred-prop') }
@@ -2581,7 +2604,7 @@ class Parser {
   // `state NAME [when COND] { … }` → a PartVariant with one interaction state.
   private parseStateBlock(): PartVariant {
     this.next() // 'state'
-    const name = this.expectWord('state-name')
+    const name = this.expectStateWord('state-name')
     const variant: PartVariant = { states: [name as StateName] }
     if (this.atWord('when')) {
       this.next()
@@ -3032,8 +3055,10 @@ class Parser {
       if (!this.at('word')) {
         this.issue('error', 'part-header-kind', "expected the part's kind after ':'")
       } else {
-        said.kind = this.next().value
+        const tok = this.next()
+        said.kind = tok.value
         part.kind = said.kind
+        this.checkPartKind(tok)
       }
     }
     // Then the `{`. Anything else on the line is skipped to the brace, so one unknown word costs
@@ -3049,6 +3074,21 @@ class Parser {
       )
     }
     return said
+  }
+
+  // A part's kind is one of the neutral node kinds, never a platform's element. The lowering
+  // already infers a kind in place of an unknown one; saying so HERE is what puts it in front of
+  // whoever wrote the file - an editor squiggle, a `milda-check` line - instead of in an import
+  // report nobody reads. `div` is the word this most often catches, and the reason it is wrong
+  // is the language's second rule, so the message names the kinds rather than just refusing.
+  private checkPartKind(tok: Token): void {
+    if (NODE_KINDS.includes(tok.value)) return
+    this.issue(
+      'warning',
+      'part-kind-unknown',
+      `unknown part kind ${JSON.stringify(tok.value)} - a part is one of: ${NODE_KINDS.join(', ')}`,
+      tok,
+    )
   }
 
   // `part PATH [: KIND] { pstmt* }` → [path, Part]. The name is a dotted PATH: its
@@ -3097,7 +3137,9 @@ class Parser {
         // a repeat or a contradiction, and the header wins the contradiction because the
         // writer prints the header: that is the spelling a saved file most likely meant.
         const tok = this.next()
+        const kindTok = this.peek()
         const stated = this.expectWord('part-kind')
+        if (stated) this.checkPartKind(kindTok)
         if (header.kind === undefined) part.kind = stated
         else if (stated === header.kind)
           this.issue('warning', 'part-kind-twice', `kind '${stated}' is stated twice`, tok)
@@ -3136,7 +3178,7 @@ class Parser {
           part.valueBinding = this.expectWord('bind-value-prop')
         } else if (this.atWord('state')) {
           this.next()
-          const state = this.expectWord('bind-state')
+          const state = this.expectStateWord('bind-state')
           const prop = this.expectWord('bind-state-prop')
           if (state && prop) (part.stateBindings ??= []).push({ state, prop })
         } else {
