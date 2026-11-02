@@ -514,7 +514,8 @@ export type LayoutRecordKey = (typeof LAYOUT_RECORD_KEYS)[number]
 // (`validation` goes pristine -> valid | invalid, `drag` idle -> dragging), which no target
 // exposes as a stylable condition: before this list was closed, `state invalid { ring … }` reached
 // the CSS emitter with no selector for it and came out as an unconditional rule - the ring always
-// on. A state of that kind that should be stylable joins this list together with its realization
+// on. The read still keeps such a word (it warns), so the web target now leaves the rule out and
+// names it in its `skipped` report rather than drawing it in every state. A state of that kind that should be stylable joins this list together with its realization
 // in every target, which is proposal 0050's rule: a `StateName` that compiles on both sides and is
 // realized by neither is the failure, not the cure.
 export const STATE_NAMES = [

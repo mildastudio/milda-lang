@@ -289,11 +289,20 @@ above the primitives (`shadow`, `tonal`, `blur`, …). A facet-token is an **ali
 by the `Platform` context group**, whose refs may be **cross-type** (web→`shadow`,
 android→`tonal`, ios→`none`) because the umbrella type is the abstract facet:
 
-```
-token elevation/overlay : elevation = alias by Platform {
-  web → shadow/lg ; android → tonal/3 ; ios → none ; default → shadow/md
+```milda
+context-group Platform { Web Android iOS }
+
+foundations {
+  token elevation/overlay : elevation = alias by Platform {
+    Web -> shadow.lg; Android -> tonal.3; iOS -> none; default -> shadow.md
+  }
 }
-surface { elevation overlay }     # consumer just references the token
+
+component Card {
+  part Card: container {
+    elevation elevation.overlay   # the consumer just references the token
+  }
+}
 ```
 
 The generator only needs to emit each _primitive_ per platform (`shadow`→box-shadow,
@@ -426,7 +435,8 @@ is the same list, so every word here is one every target realizes.
 `invalid`, `valid`, `dragging`, `empty` and `complete` were listed here once. They are states of
 behaviour machines (`validation`, `dnd`, `value-entry`, `progress`), not stylable UI states: no
 target realizes them, and a `state invalid { … }` rule reached the CSS emitter with no selector
-and came out unconditional. One that should be stylable joins the list together with its
+and came out unconditional (the web target now leaves such a rule out and reports it). One that
+should be stylable joins the list together with its
 realization in every target (proposal 0050 §1).
 
 ---
@@ -446,7 +456,7 @@ Behaviors and facets gate on capabilities, not platform names - keeps the core c
 The surface syntax ([`GRAMMAR.ebnf`](GRAMMAR.ebnf), `realize`) writes one block per target,
 inside the component:
 
-```
+```text
 realize <target> [when <prop>=<value>] {
   presentation <surface> { place …; flip; matchWidth }   # presentation realization
   browse       <mode>                                     # may swap the interaction behavior bundle
@@ -514,7 +524,7 @@ indivisible and drift-proof across _implementations_ (Live work #1). **Batch 1**
 
 ### Notation
 
-```
+```text
 behavior NAME(params) {
   requires CAP                 # capability gate (auto-drop if absent)
   context f: T = init          # extended state (data beyond finite states)
@@ -535,7 +545,7 @@ behavior NAME(params) {
 
 ### The 6 foundational atoms (batch 1)
 
-```
+```text
 activation(payload)                          # transducer (single state)
   states ready*;  events trigger
   ready on trigger when enabled → ready   emit invoke(payload)
@@ -576,7 +586,7 @@ dismiss(when:[outside,escape,commit,swipe-down,timeout])   # transducer
 
 ### Batch 2 atoms (input & value)
 
-```
+```text
 value-entry(bind value, commit ⊆ {change,blur,enter})
   context value:V, draft:V = value           # staged value: draft (typing) vs value (committed)
   states idle*, editing
@@ -626,7 +636,7 @@ submission(over fields)                       # fields: DYNAMIC set of validatio
 
 ### Batch 3 atoms (gesture/motion, status/async, navigation, scroll)
 
-```
+```text
 scheduler(after t, mode: timeout|debounce|interval)
   states idle*, pending
   idle    on arm    → pending
@@ -668,7 +678,7 @@ scroll(of region)                                  # observer transducer
 `motion` adds no states; it _decorates existing transitions_ (like style decorates nodes).
 Formalizing behaviors as state machines gives motion the precise anchor it lacked:
 
-```
+```text
 motion on P.closed→open   = spring(300ms)
 motion on list.reorder    = flip(200ms)
 motion enter/exit surface = fade + slide
@@ -676,7 +686,7 @@ motion enter/exit surface = fade + slide
 
 ### Composition algebra
 
-```
+```text
 uses MACHINE as M
 wire <src-event> [when g] → <dst-event>      # 1:1 - one machine's output → another's input
 gate <machine> active when <predicate>       # listen only under a condition
@@ -698,7 +708,7 @@ after the first two; batch 3's gesture recognizers reopened it with the third.)
 
 ### Validation - SingleSelect (both commit-modes)
 
-```
+```text
 archetype SingleSelect(options, bind selected) {
   uses activation as A; uses presentation(popover) as P
   uses selection.single(over options) as S
@@ -771,7 +781,7 @@ forms) - per-`type` value schemas are a documented future tightening.
 
 ### Top-level (design-system document)
 
-```
+```text
 { milda, kind:"design-system", prelude, meta,
   foundations:{ contextGroups[], layers[ {tokens[]} ], sharedTypes[] },
   assets:{ folders[], assets[] },
@@ -782,7 +792,7 @@ forms) - per-`type` value schemas are a documented future tightening.
 
 ### Token value kinds
 
-```
+```text
 {"kind":"raw","value":<typed value>}                             # self-contained, typed by `type`
 {"kind":"alias","by":"<cg.id>","refs":{"<ctx.id>":"<tok.id>", "default":"<tok.id>"}}
 {"kind":"escape","raw":"<platform string>","note":"…"}           # leaf escape hatch (partial)
@@ -801,7 +811,7 @@ aliases `by` another context group (chaining through layers); never composite ke
 
 ### Component (archetype usage)
 
-```
+```text
 { id, name, archetype:"<prelude archetype>",
   contract:{ params:{<archParam>:{prop|static}}, props[], events[{name,from:"<machine.event>"}] },
   anatomy:{ <part>:{ layout?, facets?, states?:{<state>:{facets}} } },
@@ -838,7 +848,7 @@ aliases `by` another context group (chaining through layers); never composite ke
 
 Atoms (§9) encode directly; e.g. `toggle`:
 
-```
+```text
 { "kind":"atom", "name":"toggle", "params":[{"name":"v","bind":true}],
   "states":[{"id":"off","initial":true},{"id":"on"}],
   "events":[{"name":"toggle"},{"name":"set","args":["b"]}],
@@ -858,7 +868,7 @@ implementation-independent.
 An archetype's **published anatomy** (prelude 0.0.2, proposal 0005) serializes as a tree of
 parts - platform-neutral, no element/tag:
 
-```
+```text
 "anatomy":[ { "name":"trigger", "role":"control", "children":[
               {"name":"value","role":"text"}, {"name":"indicator","role":"icon"} ] },
             { "name":"surface", "role":"container", "children":[
