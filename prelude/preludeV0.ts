@@ -9,7 +9,7 @@ import type {
   TaxonomyNote,
 } from '../types/prelude'
 import type { StateName } from '../types/facets'
-import { STATE_NAMES } from '../dsl/vocabulary'
+import { PRELUDE_VERSION, STATE_NAMES } from '../dsl/vocabulary'
 
 const atoms: Atom[] = [
   {
@@ -1676,11 +1676,14 @@ const nonBehaviors: TaxonomyNote[] = [
 export const preludeV0: PreludeDocument = {
   milda: '0.0.1',
   kind: 'prelude',
-  prelude: '0.0.1',
+  // The prelude names its own version from the one constant the reader and the writer stamp
+  // into a file header. As two literals they had parted: this said 0.0.1 for months after
+  // the anatomy tree (proposal 0005) made it 0.0.2 everywhere else.
+  prelude: PRELUDE_VERSION,
   meta: {
     id: 'prelude.milda',
     name: 'Milda Prelude',
-    version: '0.0.2',
+    version: PRELUDE_VERSION,
     description: 'Built-in standard library: atoms, archetypes, facets, states, capabilities.',
   },
   atoms,
